@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: "If you use this software in your research, please cite it as below."
+authors:
+  - family-names: "Contributors"
+    given-names: "Q-MATIS"
+title: "Q-MATIS: Quantum Materials Intelligence System"
+version: 1.0.0-alpha
+date-released: 2026-07-04
+url: "https://github.com/RYuK006/Q-MATIS"
+license: MIT
+repository-code: "https://github.com/RYuK006/Q-MATIS"

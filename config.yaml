@@ -1,0 +1,83 @@
+# Superconductor Discovery AI - Configuration
+
+model:
+  name: "CGCNN_Modernized"
+  node_dim: 17  # Number of features extracted
+  edge_dim: 81  # RBF dimension (from 0 to 8 with step 0.1)
+  hidden_dim: 128
+  num_layers: 4
+  dropout: 0.1
+  batch_norm: true
+  residual: true
+
+training:
+  batch_size: 32
+  learning_rate: 0.001
+  epochs: 100
+  patience: 15
+  weight_decay: 1.0e-5
+  mixed_precision: true
+  clip_grad_norm: 1.0
+
+data:
+  radius: 8.0 # Cutoff for neighbor graph in Angstroms
+  max_num_nbr: 12 # Max neighbors
+  rbf_distance: 
+    start: 0.0
+    end: 8.0
+    step: 0.1
+  val_split: 0.1
+  test_split: 0.1
+  random_seed: 42
+  cache_dir: "./cache"
+
+active_learning:
+  tc_threshold: 50.0  # Kelvin
+  uncertainty_samples: 20
+
+system:
+  random_seed: 42
+  log_level: "INFO"
+
+pretrain:
+  enabled: true
+  freeze_strategy: "partial_encoder"  # Options: train_head_only, partial_encoder, full_finetuning
+  pretrain_lr: 0.001
+
+loss_weighting:
+  strategy: "manual"  # Options: manual, uncertainty
+
+tasks:
+  - name: "tc"
+    target_key: "tc"
+    loss: "huber"
+    metrics:
+      - "mae"
+      - "rmse"
+      - "r2"
+    weight: 1.0
+    enabled: true
+  - name: "formation_energy"
+    target_key: "formation_energy"
+    loss: "mse"
+    metrics:
+      - "mae"
+      - "rmse"
+    weight: 0.5
+    enabled: true
+
+data_sources:
+  api_key: "h8yUPGpRyq8vEc8u5Ks5DH7KcA6YaX6S"
+  supercon_csv: "data/supercon.csv"
+  dataset_cache_dir: "./cache/dataset"
+
+pipeline_limits:
+  data_limit: 500  # Set to 0 to ingest the entire database
+
+hpo:
+  enabled: true
+  n_trials: 2
+
+ensemble:
+  enabled: true
+  n_models: 2

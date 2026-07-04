@@ -81,3 +81,9 @@ hpo:
 ensemble:
   enabled: true
   n_models: 2
+
+physics_filters:
+  charge_neutrality_mode: "adaptive" # strict, mixed_valence, adaptive
+  max_ionic_radius_diff: 0.15 # 15% difference tolerance
+  max_electronegativity_diff: 0.5
+  enforce_symmetry_subgroup: true

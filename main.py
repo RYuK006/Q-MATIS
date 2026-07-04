@@ -11,7 +11,7 @@ import numpy as np
 from superconductor.data import get_dataloaders
 from superconductor.train import train_model, evaluate
 from superconductor.eval import calculate_metrics, plot_predictions
-from superconductor.candidate_gen import generate_substitutions
+from superconductor.candidate_gen import PhysicsAwareCandidateEngine
 from superconductor.active_learning import rank_candidates
 from superconductor.dft import export_vasp
 def set_seed(seed=42):
@@ -336,9 +336,15 @@ class DiscoveryPipeline:
         self.logger.info("Starting Active Learning Discovery Loop...")
         base_structure = dataset[0]['structure'].copy()
         
-        substitutions = [{'Mg': 'Y'}, {'Mg': 'Ba'}]
-        candidates = generate_substitutions(base_structure, substitutions)
+        engine = PhysicsAwareCandidateEngine(self.config)
+        substitutions = [{'Mg': 'Y'}, {'Mg': 'Ba'}, {'Mg': 'Ca', 'B': 'C'}]
+        valid_candidates_info = engine.generate(base_structure, strategy="substitution", substitutions=substitutions)
         
+        candidates = [info['structure'] for info in valid_candidates_info]
+        if not candidates:
+            self.logger.warning("No synthetically viable candidates generated. Aborting AL loop.")
+            return
+            
         ranked = rank_candidates(models, candidates, self.config, scaler, self.device)
         
         for i, res in enumerate(ranked):

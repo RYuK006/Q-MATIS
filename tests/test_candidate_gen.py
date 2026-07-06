@@ -120,7 +120,8 @@ def test_engine_generation(base_structure):
     # Test valid substitution (Na -> K)
     res = engine.generate(base_structure, "substitution", substitutions=[{"Na": "K"}])
     assert len(res) == 1
-    assert "K" in res[0]["structure"].composition.as_dict()
+    struct = Structure.from_dict(res[0].structure_json)
+    assert "K" in struct.composition.as_dict()
 
     # Test vacancy generation
     res = engine.generate(base_structure, "vacancy", substitutions=["Na"])

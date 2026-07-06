@@ -1,6 +1,6 @@
 # Q-MATIS: Quantum Materials Intelligence System
 
-![Q-MATIS Logo](https://via.placeholder.com/1200x300.png?text=Q-MATIS)
+![Q-MATIS Logo](assets/logo.png)
 
 <div align="center">
   <strong>An Autonomous AI-Driven Materials Discovery Platform for High-Temperature Superconductors</strong>

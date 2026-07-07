@@ -1,52 +1,64 @@
-# Q-MATIS Development Roadmap
+# Q-MATIS Roadmap
 
-The ultimate objective of Q-MATIS (Quantum Materials Intelligence System) is to become a fully autonomous AI-driven materials discovery platform capable of generating, evaluating, ranking, validating, and continuously improving its search for experimentally realizable high-temperature superconductors.
+Q-MATIS is built for a decades-long scientific vision. Our long-term mission is to build the world's scientific memory for materials, creating permanent scientific infrastructure capable of supporting future AI systems, autonomous laboratories, and materials discovery across every scientific discipline.
 
-## Completed Milestones (Phase 0 Foundation)
-- **Data Architecture**: SQLite determinism and modular MP/SuperCon orchestrators.
-- **Graph Engineering**: PyTorch Geometric representations with atomic feature injection.
-- **Architectures**: CGCNN baseline and native PyG ALIGNN Edge-Gated implementation.
-- **Training Systems**: Multi-task learning, Transfer learning, and Deep Ensemble uncertainty calibration.
-- **Platform Integrity**: Open-source GitHub publication, CI/CD, and technical documentation.
+The progression below outlines our path from foundational research prototype to a global, closed-loop Universal Materials Intelligence Platform.
 
-## Phase 1: Physics-Aware Candidate Generation
-*Goal: Reject chemically impossible candidates before GNN inference.*
-- [ ] Oxidation-state validation
-- [ ] Charge neutrality constraints
-- [ ] Ionic radius compatibility & electronegativity checks
-- [ ] Coordination environment symmetry preservation
-- [ ] Advanced alloy, defect, and vacancy generation
+## 1. Research Foundation (Completed)
+Establish the core Deep Learning pipeline.
+- Implement robust GNN Encoders (ALIGNN, CGCNN) for structural representations.
+- Build Multi-Task Learning frameworks to cross-pollinate insights across tasks.
+- Demonstrate predictive capacity on initial benchmark datasets.
 
-## Phase 2: High-Throughput Virtual Screening (HTVS)
-*Goal: Scale inference to millions of candidate materials.*
-- [ ] Batched inference and multi-GPU parallelism
-- [ ] Asynchronous processing and checkpoint recovery
-- [ ] Large-scale Parquet/SQLite storage of predictions ($T_c$, FE, novelty, uncertainty)
+## 2. Universal Materials Knowledge Graph (Completed)
+Migrate from transient, fragmented data representations to a permanent storage model.
+- Implement a rigid SQLite/Parquet hybrid ledger.
+- Build the `MaterialEntity` data model to track materials with unique UUIDs.
+- Enforce strict append-only constraints across all database schemas.
 
-## Phase 3: Discovery Ranking Engine
-*Goal: Multi-objective candidate scoring.*
-- [ ] Combine $T_c$, uncertainty, stability (FE), and synthesis feasibility into a unified utility function.
+## 3. Physics-Constrained Discovery (Completed)
+Ensure AI is bounded by physical reality.
+- Implement the Candidate Generation Engine.
+- Subject all generated materials to universal domain-knowledge filters (Charge Neutrality, Wyckoff Preservation, Bond-Valence Heuristics).
+- Integrate Active Learning and epistemic uncertainty bounds via Deep Ensembles.
 
-## Phase 4: Novelty Detection
-*Goal: Prioritize materials unlike anything currently known.*
-- [ ] Latent-space novelty estimation (Nearest-neighbor search, clustering).
-- [ ] Latent space visualization dashboards.
+## 4. Fault-Tolerant Scientific Platform (In Progress)
+Build OS-level robustness for continuous discovery on unreliable hardware.
+- Implement the `ResearchExecutionEngine`.
+- Enable multi-level resumability across experiments and batches.
+- Solidify the Scientific Memory Engine so no compute cycle or generated data is ever lost during crashes.
 
-## Phase 5: Automated DFT Validation
-*Goal: Close the physical simulation loop.*
-- [ ] VASP and Quantum ESPRESSO wrappers.
-- [ ] Automated generation of simulation directories.
-- [ ] Parsers to ingest DFT results back into the training corpus.
+## 5. High-Throughput Virtual Screening (HTVS)
+Scale the Candidate Generation Engine across compute clusters.
+- Distribute inference workloads horizontally.
+- Orchestrate millions of daily candidate evaluations against the trained surrogate models.
 
-## Phase 6: Autonomous Discovery Loop
-*Goal: Full autonomy.*
-- [ ] Continuous orchestration loop: Generate -> Filter -> Predict -> Rank -> DFT -> Retrain -> Repeat.
+## 6. Universal Property Prediction
+Expand the platform beyond its initial benchmarks (e.g., superconductivity).
+- Build generalized prediction heads for diverse properties: Formation Energy, Band Gap, Elastic Modulus, Thermal Conductivity, Catalytic Activity, Battery Voltage, Hydrogen Storage, etc.
+- Seamlessly route the predictions directly into the Materials Lake.
 
-## Phase 7: Generative Crystal Design
-*Goal: Create novel crystal topologies beyond simple substitutions.*
-- [ ] Integration of Graph Variational Autoencoders (Graph VAEs).
-- [ ] Integration of 3D Crystal Diffusion Models.
+## 7. Materials Foundation Model
+Train a unified single-encoder representation.
+- Consolidate all architectural learnings into a massive multi-modal Foundation Model.
+- A single encoder must understand the physics of all crystalline matter, making it rapidly fine-tunable for any new, unforeseen property.
 
-## Phase 8: Universal Foundation Models
-*Goal: Leverage massive self-supervised physics representations.*
-- [ ] M3GNet and CHGNet integration as feature extractors and fine-tuning backbones.
+## 8. Retrieval-Augmented Scientific Memory
+Augment generation processes with context from the global Materials Lake.
+- Feed vast quantities of append-only historical decisions and lineage data back into the LLMs/GNNs.
+- Enable the AI to read its own past failures to avoid repetitive exploration.
+
+## 9. Closed-Loop Autonomous Discovery
+Eliminate the human bottleneck in the hypothesis generation loop.
+- The system independently explores chemical space.
+- Autonomously schedules simulations, analyzes uncertainties, and refines its own models continuously.
+
+## 10. AI-Assisted Laboratory Integration
+Bridge virtual screening with physical laboratory synthesis.
+- Integrate APIs with automated robotic synthesis labs.
+- Close the loop entirely: from digital generation, to physical synthesis, physical measurement, and directly back into the Materials Lake.
+
+## 11. Global Collaborative Materials Database
+Open the ecosystem.
+- Serve the Universal Materials Lake to the global public.
+- Transform Q-MATIS into the foundational infrastructure underlying collaborative materials science research worldwide.

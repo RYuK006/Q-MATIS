@@ -79,29 +79,31 @@ class MaterialRegistry:
         for e in embs:
             try:
                 self.lake.execute_write("""
-                    INSERT INTO embeddings (id, material_id, experiment_id, prediction_id, dimension, embedding_path, timestamp)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, (e.id, material_id, e.experiment_id, e.prediction_id, e.dimension, e.embedding_path, e.timestamp))
+                    INSERT INTO embeddings (id, material_id, experiment_id, prediction_id, dimension, embedding_data, encoder_architecture, timestamp)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (e.id, material_id, e.experiment_id, e.prediction_id, e.dimension, e.embedding_data, e.encoder_architecture, e.timestamp))
             except sqlite3.IntegrityError:
                 pass
 
-    def save_latent_vector(self, material_id: str, prediction_id: str, experiment_id: str, vector: np.ndarray) -> EmbeddingRecord:
+    def save_latent_vector(self, material_id: str, prediction_id: str, experiment_id: str, vector: np.ndarray, encoder_architecture: str = "unknown") -> EmbeddingRecord:
         """
-        Saves a latent graph embedding vector to disk and records it in the lake.
+        Saves a latent graph embedding vector directly to SQLite as a BLOB and records it in the lake.
         """
         dim = vector.shape[0] if len(vector.shape) == 1 else vector.shape[-1]
         
+        # Ensure it is a numpy array of float32
+        if not isinstance(vector, np.ndarray):
+            vector = np.array(vector, dtype=np.float32)
+        elif vector.dtype != np.float32:
+            vector = vector.astype(np.float32)
+
         emb_record = EmbeddingRecord(
             experiment_id=experiment_id,
             prediction_id=prediction_id,
-            dimension=dim
+            dimension=dim,
+            embedding_data=vector.tobytes(),
+            encoder_architecture=encoder_architecture
         )
-        
-        emb_filename = f"{emb_record.id}.npy"
-        emb_path = os.path.join(self.lake.embeddings_dir, emb_filename)
-        np.save(emb_path, vector)
-        
-        emb_record.embedding_path = emb_path
         
         self._append_embeddings(material_id, [emb_record])
         return emb_record

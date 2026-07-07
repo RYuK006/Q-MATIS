@@ -1,8 +1,11 @@
 import json
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime
 import os
+import torch
+import platform
+import subprocess
 
 from .materials_lake import MaterialsLake
 
@@ -15,70 +18,79 @@ class ResearchStateManager:
     def __init__(self, lake: MaterialsLake):
         self.lake = lake
 
-    # ==========================================
-    # LEVEL 1: EPOCH CHECKPOINTS
-    # ==========================================
-    def save_epoch_checkpoint(self, model: Any, optimizer: Any, scheduler: Any, epoch: int, metrics: Dict, path: str):
+    # Checkpointing is now handled by checkpoint_manager.py
+        
+    def save_environment_state(self, exp_id: str):
         """
-        Placeholder for saving PyTorch checkpoints.
-        Will be fully implemented when PyTorch models are integrated.
+        Records the current environment metadata to ensure reproducible research.
         """
         try:
-            import torch
-            checkpoint = {
-                'epoch': epoch,
-                'model_state_dict': model.state_dict() if hasattr(model, 'state_dict') else None,
-                'optimizer_state_dict': optimizer.state_dict() if hasattr(optimizer, 'state_dict') else None,
-                'scheduler_state_dict': scheduler.state_dict() if hasattr(scheduler, 'state_dict') else None,
-                'metrics': metrics
-            }
-            os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
-            torch.save(checkpoint, path)
-            logger.info(f"Saved epoch {epoch} checkpoint to {path}")
-        except ImportError:
-            logger.warning("torch not installed. Mocking epoch checkpoint save.")
+            git_commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], stderr=subprocess.STDOUT).decode('utf-8').strip()
+        except Exception:
+            git_commit = "unknown"
             
-    def load_epoch_checkpoint(self, path: str) -> Dict[str, Any]:
-        """
-        Placeholder for loading PyTorch checkpoints.
-        """
-        try:
-            import torch
-            return torch.load(path)
-        except ImportError:
-            logger.warning("torch not installed. Mocking epoch checkpoint load.")
-            return {'epoch': 0}
+        env_vars = {
+            "PYTHONPATH": os.environ.get("PYTHONPATH", ""),
+            "CUDA_VISIBLE_DEVICES": os.environ.get("CUDA_VISIBLE_DEVICES", "")
+        }
+        
+        hardware_info = {
+            "platform": platform.platform(),
+            "cpu_count": os.cpu_count(),
+            "cuda_available": torch.cuda.is_available(),
+            "gpu_name": torch.cuda.get_device_name(0) if torch.cuda.is_available() else "CPU",
+            "gpu_properties": str(torch.cuda.get_device_properties(0)) if torch.cuda.is_available() else ""
+        }
+        
+        self.lake.execute_write("""
+            INSERT INTO environment_metadata (experiment_id, python_version, torch_version, cuda_version, git_commit, hardware_info, env_vars, timestamp)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            exp_id,
+            platform.python_version(),
+            torch.__version__,
+            torch.version.cuda if torch.cuda.is_available() else "None",
+            git_commit,
+            json.dumps(hardware_info),
+            json.dumps(env_vars),
+            datetime.utcnow().isoformat()
+        ))
+        logger.info(f"Saved environment state for experiment {exp_id}")
 
     # ==========================================
     # LEVEL 2: PIPELINE STAGES
     # ==========================================
-    def update_pipeline_stage(self, exp_id: str, stage: str, completed_stages: List[str]):
-        """
-        Updates the macro-stage of the pipeline for a given experiment.
-        """
+    def log_stage_start(self, exp_id: str, stage: str):
+        now = datetime.utcnow().isoformat()
+        self.lake.execute_write("""
+            INSERT INTO stage_history (experiment_id, stage_name, status, start_time)
+            VALUES (?, ?, ?, ?)
+        """, (exp_id, stage, "RUNNING", now))
+        
+    def log_stage_end(self, exp_id: str, stage: str, status: str = "COMPLETED", failure_reason: str = None):
         now = datetime.utcnow().isoformat()
         
-        # Check if exists
-        rows = self.lake.execute_read("SELECT experiment_id FROM experiment_states WHERE experiment_id = ?", (exp_id,))
+        # Get start time to calculate duration
+        rows = self.lake.execute_read("""
+            SELECT id, start_time FROM stage_history 
+            WHERE experiment_id = ? AND stage_name = ? AND status = 'RUNNING'
+            ORDER BY id DESC LIMIT 1
+        """, (exp_id, stage))
+        
+        duration = 0.0
         if rows:
+            try:
+                start_dt = datetime.fromisoformat(rows[0]["start_time"])
+                end_dt = datetime.fromisoformat(now)
+                duration = (end_dt - start_dt).total_seconds()
+            except Exception:
+                pass
+                
             self.lake.execute_write("""
-                UPDATE experiment_states 
-                SET current_stage = ?, completed_stages = ?, last_updated = ?
-                WHERE experiment_id = ?
-            """, (stage, json.dumps(completed_stages), now, exp_id))
-        else:
-            self.lake.execute_write("""
-                INSERT INTO experiment_states (experiment_id, current_stage, completed_stages, metrics, last_updated)
-                VALUES (?, ?, ?, ?, ?)
-            """, (exp_id, stage, json.dumps(completed_stages), "{}", now))
-            
-    def get_pipeline_stage(self, exp_id: str) -> Dict[str, Any]:
-        rows = self.lake.execute_read("SELECT * FROM experiment_states WHERE experiment_id = ?", (exp_id,))
-        if rows:
-            row = dict(rows[0])
-            row["completed_stages"] = json.loads(row["completed_stages"])
-            return row
-        return {}
+                UPDATE stage_history
+                SET status = ?, end_time = ?, duration_seconds = ?, failure_reason = ?
+                WHERE id = ?
+            """, (status, now, duration, failure_reason, rows[0]["id"]))
 
     # ==========================================
     # LEVEL 3: CANDIDATE CURSORS
@@ -106,3 +118,10 @@ class ResearchStateManager:
         if rows:
             return rows[0]["last_processed_index"]
         return -1
+
+    def log_resume_action(self, exp_id: str, action: str, previous_stage: str, cursor_data: str):
+        now = datetime.utcnow().isoformat()
+        self.lake.execute_write("""
+            INSERT INTO resume_history (experiment_id, resume_action, previous_stage, cursor_data, timestamp)
+            VALUES (?, ?, ?, ?, ?)
+        """, (exp_id, action, previous_stage, cursor_data, now))

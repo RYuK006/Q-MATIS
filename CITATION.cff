@@ -1,11 +1,12 @@
 cff-version: 1.2.0
-message: "If you use this software in your research, please cite it as below."
+message: "If you use Q-MATIS in your research or mine the public Materials Lake, please cite it using this metadata."
+title: "Q-MATIS: Building the world's scientific memory for materials"
 authors:
-  - family-names: "Contributors"
-    given-names: "Q-MATIS"
-title: "Q-MATIS: Quantum Materials Intelligence System"
-version: 1.0.0-alpha
-date-released: 2026-07-04
-url: "https://github.com/RYuK006/Q-MATIS"
-license: MIT
+  - name: "Q-MATIS Contributors"
+version: "0.1.0"
+date-released: "2026-07-07"
 repository-code: "https://github.com/RYuK006/Q-MATIS"
+url: "https://github.com/RYuK006/Q-MATIS"
+abstract: |
+  Q-MATIS is a Universal Materials Intelligence Platform that learns, stores, predicts, and continuously expands scientific knowledge about every crystalline material. Our long-term goal is to create a permanent scientific memory for materials science.
+license: MIT

@@ -264,16 +264,7 @@ def _process_candidate(args):
             reason=reason if not status else ""
         ))
         
-    # Add prediction stub
-    if is_valid:
-        entity.predictions.append(PredictionRecord(
-            experiment_id=exp_id,
-            checkpoint_id=chk_id,
-            predicted_tc=round(random.uniform(10, 150), 2),
-            uncertainty=round(random.uniform(0.1, 5.0), 2),
-            physics_score=phys_score,
-            stability_score=1.0
-        ))
+    # Removed fake prediction stub. Predictions should only be added by true model inference.
     
     # Add decision record
     entity.decisions.append(DecisionRecord(
@@ -292,7 +283,7 @@ def _process_candidate(args):
 # ==========================================
 
 class PhysicsAwareCandidateEngine:
-    def __init__(self, config: Dict[str, Any], registry: MaterialRegistry = None, experiment_id: str = "", checkpoint_id: str = ""):
+    def __init__(self, config: Dict[str, Any], registry: MaterialRegistry = None, experiment_id: str = "", checkpoint_id: str = "", encoder: Any = None, model: Any = None):
         cg_conf = config.get("candidate_generation", {})
         
         lake = registry.lake if registry else MaterialsLake(cg_conf.get("database_path", "data/qmatis_lake.db"))
@@ -301,6 +292,8 @@ class PhysicsAwareCandidateEngine:
         self.use_mp = cg_conf.get("enable_multiprocessing", False)
         self.experiment_id = experiment_id
         self.checkpoint_id = checkpoint_id
+        self.encoder = encoder
+        self.model = model
         
         # Instantiate generators
         self.generators = {
@@ -347,7 +340,17 @@ class PhysicsAwareCandidateEngine:
         elif strategy == "alloy":
             kwargs["alloys"] = substitutions
             
-        raw_candidates = generator.generate(base_structure, **kwargs)
+        try:
+            raw_candidates = generator.generate(base_structure, **kwargs)
+        except Exception as e:
+            logger.error(f"Generation failed: {e}")
+            import traceback
+            tb = traceback.format_exc()
+            self.registry.lake.execute_write("""
+                INSERT INTO generation_failures (experiment_id, parent_id, generation_strategy, exception_message, stack_trace, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (self.experiment_id, base_structure.composition.reduced_formula, strategy, str(e), tb, datetime.utcnow().isoformat()))
+            return []
         
         last_processed = -1
         if batch_id:
@@ -414,16 +417,52 @@ class PhysicsAwareCandidateEngine:
                     self.state_manager.update_candidate_cursor(batch_id, self.experiment_id, len(raw_candidates), arg['raw_index'])
                 
         for ent in results:
-            self.registry.register_material(ent) # Insert into Knowledge Graph
+            # Optionally predict and encode if models are available
+            if not ent.is_rejected and self.model and self.encoder:
+                try:
+                    # Construct graph, encode, and predict
+                    from superconductor.graph import convert_structure_to_graph
+                    import torch
+                    
+                    graph_data = convert_structure_to_graph(Structure.from_dict(ent.structure_json))
+                    # Batch of 1
+                    graph_data.batch = torch.zeros(graph_data.x.size(0), dtype=torch.long)
+                    
+                    with torch.no_grad():
+                        latent_vector = self.encoder.encode(graph_data).cpu().numpy().flatten()
+                        preds = self.model({"batch": graph_data}) # Simplified call
+                        tc = float(preds.get("tc", [0.0])[0])
+                    
+                    pred_record = PredictionRecord(
+                        experiment_id=self.experiment_id,
+                        checkpoint_id=self.checkpoint_id,
+                        predicted_tc=tc,
+                        uncertainty=0.0,
+                        physics_score=ent.physics_audits[-1].score if ent.physics_audits else 0.0,
+                        stability_score=1.0
+                    )
+                    ent.predictions.append(pred_record)
+                    self.registry.register_material(ent)
+                    self.registry.save_latent_vector(ent.id, pred_record.id, self.experiment_id, latent_vector, encoder_architecture=str(self.encoder.__class__.__name__))
+                except Exception as e:
+                    logger.error(f"Failed to encode/predict candidate {ent.reduced_formula}: {e}")
+                    self.registry.register_material(ent)
+            else:
+                if not ent.is_rejected:
+                    # Accepted but no model to predict/encode
+                    ent.decisions.append(DecisionRecord(
+                        experiment_id=self.experiment_id,
+                        action="Accepted",
+                        reason="Passed filters, no model available for embedding",
+                        parameters={},
+                        responsible_module="PhysicsAwareCandidateEngine"
+                    ))
+                self.registry.register_material(ent)
             
-            # Save latent embeddings for accepted materials
-            if not ent.is_rejected and ent.predictions:
-                pred = ent.predictions[0]
-                latent_vector = np.random.randn(256).astype(np.float32) # Mock 256-dim embedding
-                self.registry.save_latent_vector(ent.id, pred.id, self.experiment_id, latent_vector)
-                
+            if not ent.is_rejected:
                 valid_candidates.append(ent)
-                logger.info(f"Candidate: {ent.reduced_formula} | TC Pred: {pred.predicted_tc}K | Score: {pred.physics_score}")
+                tc_str = f"{ent.predictions[0].predicted_tc:.2f}K" if ent.predictions else "N/A"
+                logger.info(f"Candidate: {ent.reduced_formula} | TC Pred: {tc_str}")
             else:
                 logger.debug(f"Candidate Rejected: {ent.reduced_formula}")
                 

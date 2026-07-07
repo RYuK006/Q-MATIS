@@ -24,15 +24,17 @@ class SuperconductorDataset(Dataset):
         
         # Precompute graphs
         self.graphs = []
-        for s, t in zip(self.structures, self.targets):
+        for i, s in enumerate(self.structures):
             data = structure_to_graph(s, self.rbf, radius=config['data']['radius'], max_num_nbr=config['data']['max_num_nbr'])
-            if isinstance(t, dict):
-                # PyG DataLoader doesn't natively collate dicts well, so we set each target as an attribute
-                for k, v in t.items():
-                    setattr(data, f"y_{k}", torch.tensor([v], dtype=torch.float32))
-            else:
-                # Fallback for old pipeline single target
-                data.y_default = torch.tensor([t], dtype=torch.float32)
+            if self.targets is not None:
+                t = self.targets[i]
+                if isinstance(t, dict):
+                    # PyG DataLoader doesn't natively collate dicts well, so we set each target as an attribute
+                    for k, v in t.items():
+                        setattr(data, f"y_{k}", torch.tensor([v], dtype=torch.float32))
+                else:
+                    # Fallback for old pipeline single target
+                    data.y_default = torch.tensor([t], dtype=torch.float32)
                 
             self.graphs.append(data)
             

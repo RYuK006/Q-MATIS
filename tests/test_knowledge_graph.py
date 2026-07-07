@@ -12,8 +12,7 @@ from superconductor.dataset_builder import DatasetBuilder
 @pytest.fixture
 def test_lake(tmp_path):
     db_path = str(tmp_path / "test_lake.db")
-    emb_dir = str(tmp_path / "test_embeddings")
-    lake = MaterialsLake(db_path, emb_dir)
+    lake = MaterialsLake(db_path)
     return lake
 
 def test_experiment_registry(test_lake):
@@ -37,6 +36,8 @@ def test_event_sourcing_append(test_lake):
     exp_reg = ExperimentRegistry(test_lake)
     
     exp = exp_reg.register_experiment({"test": 1})
+    mod = exp_reg.register_model("Test", "ALIGNN", "v1", "ds")
+    chk = exp_reg.register_checkpoint(mod.id, 1, 0.1, "path")
     
     mat_id = gen_id("MAT")
     entity = MaterialEntity(
@@ -47,7 +48,7 @@ def test_event_sourcing_append(test_lake):
     )
     
     # First prediction event
-    p1 = PredictionRecord(experiment_id=exp.id, predicted_tc=10.0)
+    p1 = PredictionRecord(experiment_id=exp.id, checkpoint_id=chk.id, predicted_tc=10.0)
     entity.predictions.append(p1)
     registry.register_material(entity)
     
@@ -64,7 +65,7 @@ def test_event_sourcing_append(test_lake):
         reduced_formula="SrTiO3",
         source="Imported"
     )
-    p2 = PredictionRecord(experiment_id=exp.id, predicted_tc=20.0)
+    p2 = PredictionRecord(experiment_id=exp.id, checkpoint_id=chk.id, predicted_tc=20.0)
     entity2.predictions.append(p2)
     
     # Registering again should append p2 without overwriting p1, and without failing on materials unique constraint
@@ -79,15 +80,25 @@ def test_embeddings_storage(test_lake):
     registry = MaterialRegistry(test_lake)
     mat_id = gen_id("MAT")
     pred_id = gen_id("PRD")
-    exp_id = gen_id("EXP")
+    exp_reg = ExperimentRegistry(test_lake)
+    exp = exp_reg.register_experiment({"test": 1})
+    exp_id = exp.id
+    
+    mod = exp_reg.register_model("Test", "ALIGNN", "v1", "ds")
+    chk = exp_reg.register_checkpoint(mod.id, 1, 0.1, "path")
     
     entity = MaterialEntity(id=mat_id, formula="YBa2Cu3O7", reduced_formula="YBa2Cu3O7", source="Imported")
     registry.register_material(entity)
     
-    vec = np.array([0.1, 0.2, 0.3])
+    # We also need a fake prediction in the DB for the prediction FK
+    p1 = PredictionRecord(id=pred_id, experiment_id=exp.id, checkpoint_id=chk.id, predicted_tc=10.0)
+    entity.predictions.append(p1)
+    registry._append_predictions(mat_id, [p1])
+    
+    vec = np.array([0.1, 0.2, 0.3], dtype=np.float32)
     emb = registry.save_latent_vector(mat_id, pred_id, exp_id, vec)
     
     assert emb.id.startswith("QMATIS-EMB-")
     rows = test_lake.execute_read("SELECT * FROM embeddings WHERE material_id = ?", (mat_id,))
     assert len(rows) == 1
-    assert os.path.exists(rows[0]["embedding_path"])
+    assert rows[0]["embedding_data"] == vec.tobytes()

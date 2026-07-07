@@ -84,7 +84,8 @@ class EmbeddingRecord:
     experiment_id: str = ""
     prediction_id: str = ""
     dimension: int = 0
-    embedding_path: str = ""
+    embedding_data: Optional[bytes] = None
+    encoder_architecture: str = ""
     timestamp: str = field(default_factory=lambda: datetime.utcnow().isoformat())
 
 # ==========================================

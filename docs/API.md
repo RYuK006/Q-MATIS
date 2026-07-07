@@ -1,10 +1,16 @@
-# API Reference
+# Universal Platform API Reference
+
+### MaterialsLake
+The immutable, append-only ledger for all materials data, structural embeddings, prediction history, and physical properties.
+
+### ResearchExecutionEngine
+The fault-tolerant operating system layer orchestrating High-Throughput Virtual Screening and pipeline resumability.
 
 ### DataOrchestrator
-Manages retrieval and caching of MP / SuperCon data.
+Manages ingestion and caching of MP, OQMD, SuperCon, and future physical validation datasets.
 
 ### EncoderRegistry
-Registers and initializes custom encoders (cgcnn, lignn).
+Registers and initializes universal foundation encoders (e.g., CGCNN, ALIGNN).
 
 ### TransferModel
-Wrapper class encapsulating an Encoder and Multi-Task Prediction Heads.
+Wrapper class encapsulating a Foundation Encoder and Universal Multi-Task Prediction Heads.

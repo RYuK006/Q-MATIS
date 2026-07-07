@@ -36,10 +36,8 @@ def rank_candidates(models, structures, config, dataset_scaler, device):
     from .data import SuperconductorDataset
     
     results = []
-    
-    # Dummy target since we are predicting
-    dummy_targets = [0.0] * len(structures)
-    dataset = SuperconductorDataset(structures, dummy_targets, config, scaler=dataset_scaler, is_train=False)
+    # Pass None for targets since we are predicting
+    dataset = SuperconductorDataset(structures, None, config, scaler=dataset_scaler, is_train=False)
     
     for i, data in enumerate(dataset):
         data.batch = torch.zeros(data.num_nodes, dtype=torch.long)

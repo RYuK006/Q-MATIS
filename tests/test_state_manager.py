@@ -10,22 +10,25 @@ from superconductor.state_manager import ResearchStateManager
 @pytest.fixture
 def test_lake(tmp_path):
     db_path = str(tmp_path / "test_lake.db")
-    emb_dir = str(tmp_path / "test_embeddings")
-    return MaterialsLake(db_path, emb_dir)
+    return MaterialsLake(db_path)
 
 def test_pipeline_stage_resume(test_lake):
     state_mgr = ResearchStateManager(test_lake)
-    exp_id = "EXP-TEST-STAGE"
+    exp_reg = ExperimentRegistry(test_lake)
+    exp = exp_reg.register_experiment({"test": 1})
+    exp_id = exp.id
     
-    state_mgr.update_pipeline_stage(exp_id, "PRETRAIN", ["DOWNLOAD", "GRAPH_BUILD"])
-    state = state_mgr.get_pipeline_stage(exp_id)
-    assert state["current_stage"] == "PRETRAIN"
-    assert "DOWNLOAD" in state["completed_stages"]
+    state_mgr.log_stage_start(exp_id, "PRETRAIN")
+    # Verify in DB
+    stages = test_lake.execute_read("SELECT * FROM stage_history WHERE experiment_id=?", (exp_id,))
+    assert len(stages) == 1
+    assert stages[0]["stage_name"] == "PRETRAIN"
+    assert stages[0]["status"] == "RUNNING"
     
-    # Update again
-    state_mgr.update_pipeline_stage(exp_id, "FINETUNE", ["DOWNLOAD", "GRAPH_BUILD", "PRETRAIN"])
-    state2 = state_mgr.get_pipeline_stage(exp_id)
-    assert state2["current_stage"] == "FINETUNE"
+    # End stage
+    state_mgr.log_stage_end(exp_id, "PRETRAIN", "COMPLETED")
+    stages = test_lake.execute_read("SELECT * FROM stage_history WHERE experiment_id=?", (exp_id,))
+    assert stages[0]["status"] == "COMPLETED"
 
 def test_candidate_cursor_resume(test_lake):
     # Setup Engine
@@ -65,13 +68,17 @@ def test_candidate_cursor_resume(test_lake):
 
 def test_partial_candidate_resume(test_lake):
     state_mgr = ResearchStateManager(test_lake)
+    exp_reg = ExperimentRegistry(test_lake)
+    exp = exp_reg.register_experiment({"test": 1})
+    exp_id = exp.id
+    
     batch_id = "BATCH-TEST-2"
     
     # Manually simulate that we crashed at index 1 (meaning 0 and 1 are processed)
-    state_mgr.update_candidate_cursor(batch_id, "EXP-1", 4, 1)
+    state_mgr.update_candidate_cursor(batch_id, exp_id, 4, 1)
     
     registry = MaterialRegistry(test_lake)
-    engine = PhysicsAwareCandidateEngine({}, registry, "EXP-1")
+    engine = PhysicsAwareCandidateEngine({}, registry, exp_id)
     
     lattice = Lattice.cubic(3.905)
     structure = Structure(

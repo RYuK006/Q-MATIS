@@ -6,78 +6,126 @@
 <br/>
 
 <div align="center">
-  <strong>A Scientific Operating System for Autonomous Materials Discovery</strong>
+  <strong>A Universal Materials Intelligence Platform</strong>
 </div>
 <br/>
 <div align="center">
-  <a href="#the-manifesto-science-as-a-public-memory">The Manifesto</a> •
-  <a href="#core-architecture">Core Architecture</a> •
-  <a href="#installation">Installation</a> •
+  <a href="#mission-a-universal-platform">Mission</a> •
+  <a href="#core-architecture">Architecture</a> •
+  <a href="#scientific-memory">Scientific Memory</a> •
   <a href="#roadmap">Roadmap</a>
 </div>
 <br/>
 
-## The Manifesto: Science as a Public Memory
+## Mission: A Universal Platform
 
-Historically, the discovery of novel materials has been crippled by a simple flaw: **failed experiments are thrown away.** 
+Q-MATIS is a **Universal Materials Intelligence Platform** that learns, stores, predicts, and continuously expands scientific knowledge about every crystalline material. Our long-term goal is to create a permanent scientific memory for materials science.
 
-When a machine learning model generates $100,000$ crystal candidates and rejects $99,990$ of them due to structural instability, that negative data is lost forever. When a DFT calculation fails to converge, the result is buried.
+Q-MATIS aims to become an AI operating system for materials discovery capable of supporting many diverse scientific domains. While discovering a room-temperature superconductor was our foundational challenge, **superconductivity is only the first downstream application and benchmark**, not the final objective.
 
-Q-MATIS is a comprehensive **Scientific Operating System** designed to orchestrate the entire lifecycle of autonomous materials discovery. Its foundational philosophy is that *no data is ever lost*.
+Q-MATIS is built to act as the foundation for:
+- Superconductors
+- Batteries
+- Catalysts
+- Thermoelectrics
+- Photovoltaics
+- Hydrogen storage
+- Quantum materials
+- Topological materials
+- Semiconductors
 
-Q-MATIS is built to foster a **long-term public community**. Every single experiment—including every failed structure, every rejected mathematical hypothesis, and every dead-end—is permanently logged in an immutable, append-only database. We believe that a public ledger of scientific failures is just as crucial for the future of foundation models as a ledger of successes. While discovering a room-temperature superconductor is a primary goal of our research, Q-MATIS is built to accelerate the discovery of *all* advanced materials (batteries, photovoltaics, catalysts) by treating science as a collective, public memory.
+All of these domains represent downstream tasks that are built upon a shared, centralized materials foundation model within Q-MATIS.
 
 ---
 
 ## Core Architecture
 
-As an operating system, Q-MATIS acts as the orchestration layer between raw data, deep learning, domain physics, and distributed computing. 
-
-### 1. The Immutable Materials Lake (QMKG)
-The heart of Q-MATIS is the **Materials Knowledge Graph (QMKG)**. Backed by a hybrid SQLite/Parquet engine, it operates like Git for science:
-- **`MaterialEntity`**: Every generated crystal receives a permanent UUID and tracks its parent-child lineage.
-- **Physics Audits**: Hard logs of exactly *why* a candidate failed a check (e.g., failed Goldschmidt tolerance).
-- **Public Ledger**: The lake is designed to be shared, distributed, and mined by the public community to train the next generation of Universal Foundation Models.
-
-### 2. Physics-Constrained Generation Engine
-Before any neural network is invoked, Q-MATIS subjects candidate materials to rigorous, universal domain-knowledge filters:
-- **Charge Neutrality & Oxidation State Validation**
-- **Wyckoff Position Preservation**
-- **Ionic Radius & Electronegativity Constraints**
-- **Bond-Valence Heuristics**
-
-### 3. Fault-Tolerant Research State Management
-Built to run on unreliable High-Performance Computing (HPC) nodes, Q-MATIS provides native, multi-level resumability. If a node is preempted while screening 5,000,000 compounds, the `ResearchStateManager` ensures the script instantaneously resumes at the exact sub-batch index where it died. No compute cycle is ever wasted.
-
-### 4. Deep Graph Neural Networks
-Q-MATIS seamlessly integrates state-of-the-art architectures (like ALIGNN and CGCNN) to act as ultra-fast surrogate models for any target property (Critical Temperature, Formation Energy, Bandgap). Active Learning bounds these predictions with epistemic uncertainty via Deep Ensembles.
-
----
-
-## System Diagram
+Q-MATIS abstracts away the complexity of materials informatics by providing a layered AI operating system. 
 
 ```mermaid
 graph TD
-    A[(Public Datasets\nSuperCon / MP / OQMD)] --> B[Data Orchestrator]
-    B --> C[(The Public Materials Lake\nAppend-Only Knowledge Graph)]
+    A[(Materials Databases)] --> B[Materials Knowledge Graph]
+    B --> C[Materials Foundation Encoder]
+    C --> D[Universal Property Prediction]
+    D --> E[(Scientific Memory)]
     
-    C --> D[Model Training\nALIGNN / CGCNN / M3GNet]
-    D --> E[Deep Ensembles]
-    
-    F[Base Structures] --> G[Candidate Generation Engine]
-    G --> H{Physics Constraints\nCharge, Wyckoff, BV}
-    
-    H -->|Failed Constraint| I[Log Failure Rationale to Public Lake]
-    H -->|Passed Constraint| J[Query ML Models for Target Properties]
-    
-    J --> K[Uncertainty Calibration]
-    K --> L[Save Predictions to Public Lake]
-    
-    subgraph Fault Tolerance OS Layer
-        M[Research State Manager] -.-> D
-        M -.-> G
-    end
+    E --> F1[Superconductivity]
+    E --> F2[Batteries]
+    E --> F3[Catalysis]
+    E --> F4[Thermoelectrics]
+    E --> F5[Hydrogen]
+    E --> F6[Photovoltaics]
+    E --> F7[Topological Materials]
+    E --> F8[Future Tasks]
 ```
+
+### 1. Scientific Memory
+
+The fundamental philosophy of Q-MATIS is that **no scientific data is ever lost or overwritten.** Science thrives on a public ledger of successes and failures.
+
+Q-MATIS operates an append-only Scientific Memory that permanently stores:
+- Every generated material
+- Every imported material
+- Every prediction
+- Every model version
+- Every checkpoint
+- Every experiment
+- Every decision
+- Every rejected candidate
+- Every accepted candidate
+- Every DFT result
+- Every experimental validation
+- Every configuration snapshot
+- Every lineage relationship
+
+When a mathematical hypothesis leads to a dead-end, or a structure collapses due to instability, that negative data is preserved. Every scientific decision remains fully reproducible.
+
+### 2. The Universal Materials Lake (QMKG)
+
+The heart of our data infrastructure is the **Materials Lake**, an immutable repository intended to become a universal dataset containing:
+- Structures and crystal graphs
+- Learned embeddings
+- Physical, electronic, mechanical, thermal, and magnetic properties
+- Complete provenance and lineage
+- Predictive uncertainty limits
+- Prediction history
+- Literature references
+- DFT calculations
+- Future experimental data
+
+### 3. Deep Graph Neural Networks & Transfer Learning
+
+Q-MATIS seamlessly integrates state-of-the-art graph architectures to act as ultra-fast surrogate models:
+- **CGCNN** (Crystal Graph Convolutional Neural Networks)
+- **ALIGNN** (Atomistic Line Graph Neural Network)
+
+We utilize Multi-Task Learning and Transfer Learning to cross-pollinate insights across domains (e.g., using a pre-trained formation energy encoder to warm-start critical temperature prediction).
+
+### 4. Physics-Constrained Candidate Generation & Active Learning
+
+Before any neural network makes a prediction, the Candidate Generation Engine subjects materials to rigorous, universal domain-knowledge filters (e.g., charge neutrality, oxidation states, Wyckoff preservation, bond-valence heuristics). 
+
+Combined with Active Learning frameworks, Q-MATIS intelligently navigates the vast combinatorial chemical space by evaluating candidates bounded by epistemic uncertainty via Deep Ensembles.
+
+### 5. Future Foundation Model
+
+The long-term objective of Q-MATIS is training a universal **Materials Foundation Model** capable of predicting hundreds of material properties from a single encoder. Our current implementations of CGCNN and ALIGNN serve as crucial stepping stones toward that massive multi-modal objective.
+
+---
+
+## Roadmap
+
+Q-MATIS is continuously scaling from a focused research prototype to a universal platform:
+
+- [x] **Research Foundation:** Core ML Pipeline, GNN Encoders (ALIGNN/CGCNN), Multi-Task Learning.
+- [x] **Universal Materials Knowledge Graph:** Append-only SQLite/Parquet ledger.
+- [x] **Physics-Constrained Discovery:** Domain-knowledge filtering and active learning.
+- [x] **Fault-Tolerant Scientific Platform:** OS-level resumability and research state management.
+- [ ] **High-Throughput Virtual Screening:** Distributed HTVS cluster orchestration.
+- [ ] **Universal Property Prediction:** Multi-domain property mapping.
+- [ ] **Materials Foundation Model:** Training the unified single-encoder representation.
+- [ ] **Autonomous Scientific Discovery:** Fully closed-loop AI experimentation.
+- [ ] **AI-Assisted Laboratory Integration:** Bridging virtual screening with physical laboratory synthesis.
 
 ---
 
@@ -98,30 +146,7 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### Environment Setup
-1. Obtain necessary API keys (e.g., [Materials Project](https://next-gen.materialsproject.org/)).
-2. Copy the environment template: `cp .env.example .env`
-3. Add your keys to `.env`: `MP_API_KEY=your_key_here`
-
 ---
-
-## Roadmap
-
-Q-MATIS is actively undergoing continuous architectural scaling to support the global materials science community.
-
-- [x] **Phase A:** Core ML Pipeline, GNN Encoders (ALIGNN), Multi-Task Learning.
-- [x] **Phase B1:** Physics-Constrained Discovery Engine (Domain-knowledge filtering).
-- [x] **Phase B2:** Materials Knowledge Graph (Append-only public ledger of experiments).
-- [x] **Phase B3:** Fault-Tolerant Research State Management (OS-level resumability).
-- [ ] **Phase C:** High-Throughput Virtual Screening (HTVS) Cluster Orchestration.
-- [ ] **Phase D:** Automated DFT Validation Queues (VASP / Quantum ESPRESSO).
-- [ ] **Phase E:** Generative Crystal Design via Flow Matching / Diffusion.
-
----
-
-## License
-
-This project is licensed under the [MIT License](LICENSE).
 
 ## Citation
 
@@ -129,7 +154,7 @@ If you use Q-MATIS in your research or mine the public Materials Lake, please ci
 ```bibtex
 @software{q_matis_2026,
   author = {Q-MATIS Contributors},
-  title = {Q-MATIS: A Scientific Operating System for Autonomous Materials Discovery},
+  title = {Q-MATIS: A Universal Materials Intelligence Platform},
   year = {2026},
   publisher = {GitHub},
   url = {https://github.com/RYuK006/Q-MATIS}

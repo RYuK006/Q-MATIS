@@ -1,15 +1,17 @@
 # Q-MATIS: Quantum Materials Intelligence System
 
-![Q-MATIS Logo](assets/logo.png)
+<div align="center">
+  <img src="assets/logo.png" alt="Q-MATIS Logo" width="80%">
+</div>
+<br/>
 
 <div align="center">
   <strong>A Scientific Operating System for Autonomous Materials Discovery</strong>
 </div>
 <br/>
 <div align="center">
-  <a href="#the-manifesto">The Manifesto</a> •
+  <a href="#the-manifesto-science-as-a-public-memory">The Manifesto</a> •
   <a href="#core-architecture">Core Architecture</a> •
-  <a href="#the-public-knowledge-graph">The Public Knowledge Graph</a> •
   <a href="#installation">Installation</a> •
   <a href="#roadmap">Roadmap</a>
 </div>
@@ -23,7 +25,7 @@ When a machine learning model generates $100,000$ crystal candidates and rejects
 
 Q-MATIS is a comprehensive **Scientific Operating System** designed to orchestrate the entire lifecycle of autonomous materials discovery. Its foundational philosophy is that *no data is ever lost*.
 
-Q-MATIS is built to foster a **long-term public community**. Every single experiment—including every failed structure, every rejected mathematical hypothesis, and every dead-end—is permanently logged in an immutable, append-only database. We believe that a public ledger of scientific failures is just as crucial for the future of foundation models as a ledger of successes.
+Q-MATIS is built to foster a **long-term public community**. Every single experiment—including every failed structure, every rejected mathematical hypothesis, and every dead-end—is permanently logged in an immutable, append-only database. We believe that a public ledger of scientific failures is just as crucial for the future of foundation models as a ledger of successes. While discovering a room-temperature superconductor is a primary goal of our research, Q-MATIS is built to accelerate the discovery of *all* advanced materials (batteries, photovoltaics, catalysts) by treating science as a collective, public memory.
 
 ---
 

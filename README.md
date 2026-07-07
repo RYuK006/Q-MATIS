@@ -3,81 +3,75 @@
 ![Q-MATIS Logo](assets/logo.png)
 
 <div align="center">
-  <strong>An Autonomous, Fault-Tolerant Materials Discovery Engine & Scientific Memory System</strong>
+  <strong>A Scientific Operating System for Autonomous Materials Discovery</strong>
 </div>
 <br/>
 <div align="center">
-  <a href="#scientific-vision">Scientific Vision</a> •
-  <a href="#core-pillars">Core Pillars</a> •
-  <a href="#repository-architecture">Architecture</a> •
+  <a href="#the-manifesto">The Manifesto</a> •
+  <a href="#core-architecture">Core Architecture</a> •
+  <a href="#the-public-knowledge-graph">The Public Knowledge Graph</a> •
   <a href="#installation">Installation</a> •
-  <a href="#roadmap-and-phases">Roadmap</a>
+  <a href="#roadmap">Roadmap</a>
 </div>
 <br/>
 
-## Project Overview
+## The Manifesto: Science as a Public Memory
 
-**Q-MATIS (Quantum Materials Intelligence System)** has evolved from a standard machine learning pipeline into a highly resilient, autonomous **High-Throughput Virtual Screening (HTVS) engine**. It is designed to relentlessly discover, evaluate, and structurally validate novel high-temperature superconductors.
+Historically, the discovery of novel materials has been crippled by a simple flaw: **failed experiments are thrown away.** 
 
-Unlike traditional scripts that discard generated candidates after inference, Q-MATIS operates as an append-only **Scientific Memory System**. Every generated structure, every physics constraint evaluated, every model prediction, and every pipeline failure is permanently logged into the **Materials Knowledge Graph (QMKG)**. 
+When a machine learning model generates $100,000$ crystal candidates and rejects $99,990$ of them due to structural instability, that negative data is lost forever. When a DFT calculation fails to converge, the result is buried.
 
----
+**Q-MATIS is not a "superconductor predictor."** It is a comprehensive **Scientific Operating System** designed to orchestrate the entire lifecycle of autonomous materials discovery. Its foundational philosophy is that *no data is ever lost*.
 
-## Scientific Vision
-
-The discovery of high-temperature superconductors (HTS) is historically driven by serendipitous trial-and-error. Navigating the $10^{100}$ possible stable compounds requires moving beyond simple ML models. 
-
-Q-MATIS attacks this by combining:
-1. **Deep Graph Neural Networks (ALIGNN, CGCNN)** to act as ultra-fast surrogate models for $T_c$ and formation energy.
-2. **Physics-Constrained Generation** to prune mathematically invalid crystals before they ever reach the neural network.
-3. **Resumable State Management** to allow multi-million compound screenings to survive cluster preemptions, network failures, and hardware crashes natively.
+Q-MATIS is built to foster a **long-term public community**. Every single experiment—including every failed structure, every rejected mathematical hypothesis, and every dead-end—is permanently logged in an immutable, append-only database. We believe that a public ledger of scientific failures is just as crucial for the future of foundation models as a ledger of successes.
 
 ---
 
-## Core Pillars
+## Core Architecture
 
-### 1. Materials Knowledge Graph (QMKG) & Data Lake
-We enforce a strict "append-only, never overwrite" philosophy, inspired by Git and event-sourcing. The `MaterialsLake` utilizes a hybrid SQLite + Parquet backend to store:
-- **`MaterialEntity`**: Every crystal structure generated receives a permanent UUID and parent-child lineage tracking.
-- **`PhysicsAuditRecord`**: Hard logs of why a candidate was rejected (e.g., failed Goldschmidt tolerance).
-- **`ExperimentRecord`**: Complete reproducibility logging (config snapshots, random seeds, Git commits).
+As an operating system, Q-MATIS acts as the orchestration layer between raw data, deep learning, domain physics, and distributed computing. 
 
-### 2. Physics-Aware Candidate Engine
-To prevent generating "garbage" chemical formulas, the discovery engine subjects candidates to rigorous domain-knowledge filters *before* prediction:
+### 1. The Immutable Materials Lake (QMKG)
+The heart of Q-MATIS is the **Materials Knowledge Graph (QMKG)**. Backed by a hybrid SQLite/Parquet engine, it operates like Git for science:
+- **`MaterialEntity`**: Every generated crystal receives a permanent UUID and tracks its parent-child lineage.
+- **Physics Audits**: Hard logs of exactly *why* a candidate failed a check (e.g., failed Goldschmidt tolerance).
+- **Public Ledger**: The lake is designed to be shared, distributed, and mined by the public community to train the next generation of Universal Foundation Models.
+
+### 2. Physics-Constrained Generation Engine
+Before any neural network is invoked, Q-MATIS subjects candidate materials to rigorous, universal domain-knowledge filters:
 - **Charge Neutrality & Oxidation State Validation**
 - **Wyckoff Position Preservation**
 - **Ionic Radius & Electronegativity Constraints**
 - **Bond-Valence Heuristics**
 
-### 3. Fault-Tolerant Research State Manager
-Q-MATIS is built to run on unreliable High-Performance Computing (HPC) nodes. The `ResearchStateManager` provides multi-level resumability:
-- **Level 1 (Epoch Checkpoints):** Deep learning weights, optimizers, and schedulers are continuously persisted.
-- **Level 2 (Pipeline Stages):** The overall macro-state (Data Prep $\rightarrow$ Pretrain $\rightarrow$ Finetune) is tracked.
-- **Level 3 (Candidate Micro-Cursors):** When generating millions of crystals, exact sub-batch indices are logged. If a cluster dies at candidate 1,412,031, restarting the job instantaneously resumes at 1,412,032.
+### 3. Fault-Tolerant Research State Management
+Built to run on unreliable High-Performance Computing (HPC) nodes, Q-MATIS provides native, multi-level resumability. If a node is preempted while screening 5,000,000 compounds, the `ResearchStateManager` ensures the script instantaneously resumes at the exact sub-batch index where it died. No compute cycle is ever wasted.
 
-### 4. Deep Ensembles & Active Learning
-To navigate the unmapped chemical space, predictions are bounded by epistemic uncertainty using Deep Ensembles. The Active Learning framework evaluates generated candidates based on an Upper Confidence Bound (UCB) utility function, surfacing only the most promising materials for DFT verification.
+### 4. Deep Graph Neural Networks
+Q-MATIS seamlessly integrates state-of-the-art architectures (like ALIGNN and CGCNN) to act as ultra-fast surrogate models for any target property (Critical Temperature, Formation Energy, Bandgap). Active Learning bounds these predictions with epistemic uncertainty via Deep Ensembles.
 
 ---
 
-## Repository Architecture
+## System Diagram
 
 ```mermaid
 graph TD
-    A[(NIMS SuperCon / MP)] --> B[Data Orchestrator]
-    B --> C[(Materials Lake\nSQLite + Parquet)]
+    A[(Public Datasets\nSuperCon / MP / OQMD)] --> B[Data Orchestrator]
+    B --> C[(The Public Materials Lake\nAppend-Only Knowledge Graph)]
     
-    C --> D[Model Training\nALIGNN / CGCNN]
+    C --> D[Model Training\nALIGNN / CGCNN / M3GNet]
     D --> E[Deep Ensembles]
     
-    F[Base Structures] --> G[Candidate Generation\nSubstitutions & Vacancies]
-    G --> H{Physics Filters\nCharge, Wyckoff, BV}
-    H -->|Fail| I[Log Rejection in Lake]
-    H -->|Pass| J[Query Models for Tc & Energy]
-    J --> K[Uncertainty Calibration]
-    K --> L[Save Predictions to Lake]
+    F[Base Structures] --> G[Candidate Generation Engine]
+    G --> H{Physics Constraints\nCharge, Wyckoff, BV}
     
-    subgraph Fault Tolerance
+    H -->|Failed Constraint| I[Log Failure Rationale to Public Lake]
+    H -->|Passed Constraint| J[Query ML Models for Target Properties]
+    
+    J --> K[Uncertainty Calibration]
+    K --> L[Save Predictions to Public Lake]
+    
+    subgraph Fault Tolerance OS Layer
         M[Research State Manager] -.-> D
         M -.-> G
     end
@@ -102,24 +96,23 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### Preparing Datasets
-To map chemical formulas to 3D structures, Q-MATIS interfaces with the Materials Project.
-1. Obtain an API key from [Materials Project](https://next-gen.materialsproject.org/).
+### Environment Setup
+1. Obtain necessary API keys (e.g., [Materials Project](https://next-gen.materialsproject.org/)).
 2. Copy the environment template: `cp .env.example .env`
-3. Add your key to `.env`: `MP_API_KEY=your_key_here`
+3. Add your keys to `.env`: `MP_API_KEY=your_key_here`
 
 ---
 
-## Roadmap and Phases
+## Roadmap
 
-Q-MATIS is actively undergoing a massive architectural transformation. 
+Q-MATIS is actively undergoing continuous architectural scaling to support the global materials science community.
 
-- [x] **Phase A1-A5:** Core ML Pipeline, GNN Encoders (ALIGNN), Multi-Task Learning, and Baselines.
+- [x] **Phase A:** Core ML Pipeline, GNN Encoders (ALIGNN), Multi-Task Learning.
 - [x] **Phase B1:** Physics-Constrained Discovery Engine (Domain-knowledge filtering).
-- [x] **Phase B2:** Materials Knowledge Graph (Append-only SQLite/Parquet registry).
-- [x] **Phase B3:** Fault-Tolerant Research State Management (Multi-level resumability).
-- [ ] **Phase C:** High-Throughput Virtual Screening (HTVS) Integration.
-- [ ] **Phase D:** Automated DFT Validation (VASP / Quantum ESPRESSO queues).
+- [x] **Phase B2:** Materials Knowledge Graph (Append-only public ledger of experiments).
+- [x] **Phase B3:** Fault-Tolerant Research State Management (OS-level resumability).
+- [ ] **Phase C:** High-Throughput Virtual Screening (HTVS) Cluster Orchestration.
+- [ ] **Phase D:** Automated DFT Validation Queues (VASP / Quantum ESPRESSO).
 - [ ] **Phase E:** Generative Crystal Design via Flow Matching / Diffusion.
 
 ---
@@ -130,11 +123,11 @@ This project is licensed under the [MIT License](LICENSE).
 
 ## Citation
 
-If you use Q-MATIS in your research, please cite:
+If you use Q-MATIS in your research or mine the public Materials Lake, please cite:
 ```bibtex
 @software{q_matis_2026,
   author = {Q-MATIS Contributors},
-  title = {Q-MATIS: Quantum Materials Intelligence System},
+  title = {Q-MATIS: A Scientific Operating System for Autonomous Materials Discovery},
   year = {2026},
   publisher = {GitHub},
   url = {https://github.com/RYuK006/Q-MATIS}

@@ -21,7 +21,7 @@ Historically, the discovery of novel materials has been crippled by a simple fla
 
 When a machine learning model generates $100,000$ crystal candidates and rejects $99,990$ of them due to structural instability, that negative data is lost forever. When a DFT calculation fails to converge, the result is buried.
 
-**Q-MATIS is not a "superconductor predictor."** It is a comprehensive **Scientific Operating System** designed to orchestrate the entire lifecycle of autonomous materials discovery. Its foundational philosophy is that *no data is ever lost*.
+Q-MATIS is a comprehensive **Scientific Operating System** designed to orchestrate the entire lifecycle of autonomous materials discovery. Its foundational philosophy is that *no data is ever lost*.
 
 Q-MATIS is built to foster a **long-term public community**. Every single experiment—including every failed structure, every rejected mathematical hypothesis, and every dead-end—is permanently logged in an immutable, append-only database. We believe that a public ledger of scientific failures is just as crucial for the future of foundation models as a ledger of successes.
 

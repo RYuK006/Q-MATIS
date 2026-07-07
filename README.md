@@ -3,97 +3,91 @@
 ![Q-MATIS Logo](assets/logo.png)
 
 <div align="center">
-  <strong>An Autonomous AI-Driven Materials Discovery Platform for High-Temperature Superconductors</strong>
+  <strong>An Autonomous, Fault-Tolerant Materials Discovery Engine & Scientific Memory System</strong>
 </div>
 <br/>
 <div align="center">
-  <a href="#scientific-motivation">Motivation</a> •
+  <a href="#scientific-vision">Scientific Vision</a> •
+  <a href="#core-pillars">Core Pillars</a> •
   <a href="#repository-architecture">Architecture</a> •
-  <a href="#benchmarks">Benchmarks</a> •
   <a href="#installation">Installation</a> •
-  <a href="#running-experiments">Usage</a>
+  <a href="#roadmap-and-phases">Roadmap</a>
 </div>
 <br/>
 
 ## Project Overview
 
-**Q-MATIS (Quantum Materials Intelligence System)** is an open-source, research-grade computational platform designed to autonomously discover, evaluate, and validate novel high-temperature superconductors (HTS). 
+**Q-MATIS (Quantum Materials Intelligence System)** has evolved from a standard machine learning pipeline into a highly resilient, autonomous **High-Throughput Virtual Screening (HTVS) engine**. It is designed to relentlessly discover, evaluate, and structurally validate novel high-temperature superconductors.
 
-Built on top of PyTorch Geometric (PyG) and leveraging deep graph neural networks (GNNs), Q-MATIS seamlessly bridges the gap between known experimental databases (e.g., SuperCon, Materials Project) and active learning discovery pipelines. It is capable of predicting critical temperature ($T_c$), formation energy, and structural stability while rigorously quantifying predictive uncertainty.
+Unlike traditional scripts that discard generated candidates after inference, Q-MATIS operates as an append-only **Scientific Memory System**. Every generated structure, every physics constraint evaluated, every model prediction, and every pipeline failure is permanently logged into the **Materials Knowledge Graph (QMKG)**. 
 
 ---
 
-## Scientific Motivation
+## Scientific Vision
 
-### Background on Superconductivity
-Superconductors are materials that exhibit zero electrical resistance and expel magnetic fields (the Meissner effect) below a certain critical temperature ($T_c$). The discovery of room-temperature superconductors would revolutionize modern technology—enabling lossless power grids, advanced quantum computers, ultra-efficient maglev transport, and compact fusion reactors.
+The discovery of high-temperature superconductors (HTS) is historically driven by serendipitous trial-and-error. Navigating the $10^{100}$ possible stable compounds requires moving beyond simple ML models. 
 
-### Current Challenges in Superconductor Discovery
-Historically, the discovery of new superconductors has been driven by serendipity and Edisonian trial-and-error. The chemical search space is astronomically large (estimated at $10^{100}$ possible stable compounds). Density Functional Theory (DFT) can predict thermodynamic stability, but $T_c$ prediction requires solving complex many-body quantum interactions (e.g., Eliashberg theory for phononic coupling) which are prohibitively expensive for high-throughput screening.
+Q-MATIS attacks this by combining:
+1. **Deep Graph Neural Networks (ALIGNN, CGCNN)** to act as ultra-fast surrogate models for $T_c$ and formation energy.
+2. **Physics-Constrained Generation** to prune mathematically invalid crystals before they ever reach the neural network.
+3. **Resumable State Management** to allow multi-million compound screenings to survive cluster preemptions, network failures, and hardware crashes natively.
 
-### Why Machine Learning and Graph Neural Networks?
-Machine learning offers a computationally inexpensive surrogate to bypass quantum mechanical simulations. 
+---
 
-Because crystal structures are inherently non-Euclidean, traditional ML models (Random Forests, standard CNNs) fail to capture the periodic topological invariants of crystals. **Graph Neural Networks (GNNs)** treat atoms as nodes and bonds as edges, naturally respecting permutation and rotational invariance, making them the ultimate architecture for predicting quantum properties from crystal structures.
+## Core Pillars
+
+### 1. Materials Knowledge Graph (QMKG) & Data Lake
+We enforce a strict "append-only, never overwrite" philosophy, inspired by Git and event-sourcing. The `MaterialsLake` utilizes a hybrid SQLite + Parquet backend to store:
+- **`MaterialEntity`**: Every crystal structure generated receives a permanent UUID and parent-child lineage tracking.
+- **`PhysicsAuditRecord`**: Hard logs of why a candidate was rejected (e.g., failed Goldschmidt tolerance).
+- **`ExperimentRecord`**: Complete reproducibility logging (config snapshots, random seeds, Git commits).
+
+### 2. Physics-Aware Candidate Engine
+To prevent generating "garbage" chemical formulas, the discovery engine subjects candidates to rigorous domain-knowledge filters *before* prediction:
+- **Charge Neutrality & Oxidation State Validation**
+- **Wyckoff Position Preservation**
+- **Ionic Radius & Electronegativity Constraints**
+- **Bond-Valence Heuristics**
+
+### 3. Fault-Tolerant Research State Manager
+Q-MATIS is built to run on unreliable High-Performance Computing (HPC) nodes. The `ResearchStateManager` provides multi-level resumability:
+- **Level 1 (Epoch Checkpoints):** Deep learning weights, optimizers, and schedulers are continuously persisted.
+- **Level 2 (Pipeline Stages):** The overall macro-state (Data Prep $\rightarrow$ Pretrain $\rightarrow$ Finetune) is tracked.
+- **Level 3 (Candidate Micro-Cursors):** When generating millions of crystals, exact sub-batch indices are logged. If a cluster dies at candidate 1,412,031, restarting the job instantaneously resumes at 1,412,032.
+
+### 4. Deep Ensembles & Active Learning
+To navigate the unmapped chemical space, predictions are bounded by epistemic uncertainty using Deep Ensembles. The Active Learning framework evaluates generated candidates based on an Upper Confidence Bound (UCB) utility function, surfacing only the most promising materials for DFT verification.
 
 ---
 
 ## Repository Architecture
 
-Q-MATIS is built with a highly modular, decoupled architecture, allowing researchers to plug and play new encoders, data sources, and training strategies.
-
 ```mermaid
 graph TD
-    A[(Materials Databases\nSuperCon / MP)] --> B[Data Orchestrator]
-    B --> C[SQLite Cache & Determinism]
-    C --> D[Graph Construction\nPyTorch Geometric]
-    D --> E[Feature Engineering\nAtomic & RBF]
-    E --> F[Encoder Registry]
-    F -->|CGCNN| G(Multi-Task Heads)
-    F -->|ALIGNN| G
-    G --> H[Deep Ensembles\nUncertainty Calibration]
-    H --> I[Active Learning\nCandidate Gen]
+    A[(NIMS SuperCon / MP)] --> B[Data Orchestrator]
+    B --> C[(Materials Lake\nSQLite + Parquet)]
+    
+    C --> D[Model Training\nALIGNN / CGCNN]
+    D --> E[Deep Ensembles]
+    
+    F[Base Structures] --> G[Candidate Generation\nSubstitutions & Vacancies]
+    G --> H{Physics Filters\nCharge, Wyckoff, BV}
+    H -->|Fail| I[Log Rejection in Lake]
+    H -->|Pass| J[Query Models for Tc & Energy]
+    J --> K[Uncertainty Calibration]
+    K --> L[Save Predictions to Lake]
+    
+    subgraph Fault Tolerance
+        M[Research State Manager] -.-> D
+        M -.-> G
+    end
 ```
-
-### Data Pipeline
-The `DataOrchestrator` seamlessly fuses the NIMS SuperCon dataset (which primarily provides chemical formulas and $T_c$) with the Materials Project API (which provides relaxed 3D crystal structures). Structures are robustly serialized into a local SQLite cache for deterministic and rapid loading.
-
-### Graph Construction & Feature Engineering
-Using `torch_geometric`, 3D crystals are parsed into periodic neighbor graphs. Nodes are initialized with 92-dimensional physicochemical embeddings (electronegativity, atomic radius, valence electrons). Edges encode spatial distances expanded via a Gaussian Radial Basis Function (RBF) kernel.
-
-### Supported Encoders
-Q-MATIS dynamically loads models via the `EncoderRegistry`:
-1. **CGCNN (Crystal Graph Convolutional Neural Networks)**: A robust baseline utilizing standard message passing across atomic neighborhoods.
-2. **ALIGNN (Atomistic Line Graph Neural Network)**: A state-of-the-art architecture implemented natively in PyG (bypassing DGL dependencies). ALIGNN exploits edge-gated graph convolutions over line graphs to capture highly complex bond-angle geometries.
-
-### Training Dynamics
-- **Transfer Learning**: The pipeline supports pretraining the generic encoder backbone on massive unlabeled/proxy datasets (like Formation Energy across MP) before fine-tuning on the scarce $T_c$ labels.
-- **Multi-Task Learning (MTL)**: Q-MATIS jointly optimizes for $T_c$ and Formation Energy. We have empirically proven that the shared representation acts as a strong regularizer, improving $T_c$ prediction accuracy.
-- **Hyperparameter Optimization (HPO)**: Bayesian optimization seamlessly tunes learning rates, weight decays, and network dimensions.
-
-### Deep Ensembles & Active Learning
-To navigate the vast unmapped chemical space, predictions must be bounded by confidence. Q-MATIS trains **Deep Ensembles**, aggregating predictions across multiple randomly initialized networks to compute epistemic uncertainty. 
-
-The **Active Learning** engine leverages this uncertainty to generate structural substitutions, evaluating candidates based on an Upper Confidence Bound (UCB) utility function before exporting them for DFT validation.
-
----
-
-## Benchmarks
-
-Q-MATIS strictly enforces rigorous, statistically validated benchmarks. 
-
-| Architecture | MAE (K) | RMSE (K) | Train Time (s) | Params |
-|---|---|---|---|---|
-| CGCNN (Baseline) | 4.1028 | 4.9918 | 6.63 | 350K |
-| **ALIGNN (Ours)** | **3.9581** | **4.8644** | 9.57 | 353K |
-
-*Note: Benchmarks run on a controlled 1,000-sample subset over 10 randomized seeds. Multi-Task Learning independently yields a +1.8% performance boost over Single-Task learning.*
 
 ---
 
 ## Installation
 
-Q-MATIS requires Python 3.10+ and a CUDA-capable GPU (highly recommended).
+Q-MATIS requires Python 3.10+ and a CUDA-capable GPU.
 
 ```bash
 # Clone the repository
@@ -108,83 +102,25 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### Preparing Datasets (Materials Project Setup)
+### Preparing Datasets
 To map chemical formulas to 3D structures, Q-MATIS interfaces with the Materials Project.
 1. Obtain an API key from [Materials Project](https://next-gen.materialsproject.org/).
 2. Copy the environment template: `cp .env.example .env`
 3. Add your key to `.env`: `MP_API_KEY=your_key_here`
 
-*Note: Datasets like SuperCon must be sourced independently and placed in `data/` according to the data documentation.*
-
 ---
 
-## Running Experiments
+## Roadmap and Phases
 
-Q-MATIS is entirely driven by a centralized YAML configuration, completely eliminating hard-coded hyperparameters.
+Q-MATIS is actively undergoing a massive architectural transformation. 
 
-**1. Configure the pipeline (`config.yaml`)**
-```yaml
-model:
-  encoder_name: "alignn"  # Options: cgcnn, alignn
-training:
-  epochs: 100
-  batch_size: 128
-tasks:
-  - name: tc
-    weight: 1.0
-  - name: formation_energy
-    weight: 0.5
-```
-
-**2. Execute the Main Pipeline**
-```bash
-python main.py
-```
-This automatically handles: Data Resolution -> Caching -> Transfer Learning -> Fine-Tuning -> Ensembling -> Active Learning.
-
-**3. Run Specific Benchmarks**
-```bash
-python scripts/benchmarks/run_a5_alignn_benchmark.py
-```
-
-### Experiment Tracking
-Every execution automatically serializes to an `experiments/` directory, saving the SQLite database snapshot, hyperparameter JSON, training curves, parity plots, and deterministic random seeds.
-
----
-
-## Repository Structure
-
-```text
-Q-MATIS/
-├── superconductor/              # Core Library
-│   ├── data_sources/            # API Wrappers (MP, SuperCon)
-│   ├── models/                  # (Legacy models removed, see encoder registry)
-│   ├── alignn.py                # ALIGNN Native PyG Implementation
-│   ├── models.py                # Encoder Registry & CGCNN
-│   ├── train.py                 # Multi-task training loops
-│   ├── eval.py                  # Deep Ensemble Uncertainty Calibration
-│   ├── graph.py                 # PyG Graph Construction
-│   └── active_learning.py       # Candidate Generation Engine
-├── scripts/
-│   ├── benchmarks/              # Ablation and architectural comparisons
-│   └── analysis/                # Latent space visualization (UMAP/t-SNE)
-├── docs/                        # Deep-dive technical documentation
-├── config.yaml                  # Master execution configuration
-├── main.py                      # Pipeline entrypoint
-└── requirements.txt             # Dependencies
-```
-
----
-
-## Roadmap and Future Work
-
-Q-MATIS is currently at **Milestone A5**. Upcoming phases include:
-
-- **Phase 1: Physics-Aware Candidate Generation** (Oxidation state validation, charge neutrality constraints).
-- **Phase 2: High-Throughput Virtual Screening (HTVS)** (Scaling inference to millions of materials).
-- **Phase 5: Automated DFT Validation** (Closing the loop with VASP / Quantum ESPRESSO).
-- **Phase 7: Generative Crystal Design** (Graph VAEs and Diffusion Models).
-- **Phase 8: Universal Foundation Models** (M3GNet integration).
+- [x] **Phase A1-A5:** Core ML Pipeline, GNN Encoders (ALIGNN), Multi-Task Learning, and Baselines.
+- [x] **Phase B1:** Physics-Constrained Discovery Engine (Domain-knowledge filtering).
+- [x] **Phase B2:** Materials Knowledge Graph (Append-only SQLite/Parquet registry).
+- [x] **Phase B3:** Fault-Tolerant Research State Management (Multi-level resumability).
+- [ ] **Phase C:** High-Throughput Virtual Screening (HTVS) Integration.
+- [ ] **Phase D:** Automated DFT Validation (VASP / Quantum ESPRESSO queues).
+- [ ] **Phase E:** Generative Crystal Design via Flow Matching / Diffusion.
 
 ---
 
@@ -204,6 +140,3 @@ If you use Q-MATIS in your research, please cite:
   url = {https://github.com/RYuK006/Q-MATIS}
 }
 ```
-
-## Acknowledgements
-We gratefully acknowledge the NIMS SuperCon database maintainers and the Materials Project team for providing the foundational data that makes this research possible.

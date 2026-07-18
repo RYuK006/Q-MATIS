@@ -18,7 +18,7 @@
 [Built & Verified](#built--verified) •
 [Experiment 2: Formation Energy](#experiment-2-scientific-memory-hypothesis-formation-energy) •
 [Experiment 3: Phonon Frequency](#experiment-3-generalization-test-phonon-frequency) •
-[What We Now Know](#what-we-now-know-across-both-experiments) •
+[What This Shows So Far](#what-this-shows-so-far-across-both-experiments) •
 [Research Philosophy](#research-philosophy) •
 [Open Research Questions](#open-research-questions) •
 [Long-Term Vision](#long-term-vision) •
@@ -158,7 +158,7 @@ A′'s comparatively high variance (std = 14.17) appears partly driven by a hand
 
 ---
 
-# What We Now Know, Across Both Experiments
+# What This Shows So Far, Across Both Experiments
 
 Two independent, preregistered, confound-corrected experiments — on two unrelated physical properties, using two different dataset scales — have both failed to find support for the hypothesis that auxiliary rejection-reason supervision improves downstream property prediction:
 
@@ -194,23 +194,19 @@ Two confounds were discovered mid-experiment during this process (a batch-dynami
 
 # Open Research Questions
 
-The following remain genuinely untested. Question 5 from earlier iterations of this document (why did the zero-gradient control beat baseline?) has been resolved above and removed from this list.
+Question 5 from earlier iterations of this document (why did the zero-gradient control beat baseline?) has been resolved above and removed from this list.
 
-## Question 1
-**Can rejected structures improve learned representations without explicit rejection labels?**
-Possible approaches: contrastive learning, masked graph modeling, self-supervised pretraining. This is the most promising remaining direction given both experiments above ruled out the *label-based* mechanism specifically, without testing label-free mechanisms.
+## Next: Can Rejected Structures Help Without Explicit Rejection Labels?
 
-## Question 2
-**Does complete experiment provenance improve retrieval or downstream reasoning?**
-Possible evaluation: retrieval benchmarks, experiment recommendation, reproducibility analysis.
+Both experiments above ruled out one specific mechanism — auxiliary rejection-reason supervision — not the broader idea that rejected structures might carry useful signal. The direct next step is testing label-free approaches: contrastive learning, masked graph modeling, self-supervised pretraining on rejected structures. This is the only item currently planned as active follow-up work; everything below is unscoped backlog, not work in progress.
 
-## Question 3
-**Which information is actually worth preserving?**
-Future experiments will evaluate individual components (optimizer history, model checkpoints, failed candidates, DFT outputs, uncertainty estimates, experiment lineage) rather than assuming all metadata is equally valuable.
+## Other Longer-Term Open Questions (Untested, No Active Timeline)
 
-## Question 4
-**Can one encoder support multiple materials-property prediction tasks without degrading performance?**
-Evaluation will begin using established public benchmarks before expanding toward broader multi-task settings.
+- **Provenance and retrieval:** does complete experiment provenance improve retrieval or downstream reasoning (e.g. retrieval benchmarks, experiment recommendation, reproducibility analysis)?
+- **Selective retention:** which information is actually worth preserving — optimizer history, checkpoints, failed candidates, DFT outputs, uncertainty estimates, lineage — rather than assuming all metadata is equally valuable?
+- **Multi-task encoding:** can one encoder support multiple materials-property prediction tasks without degrading performance? This would need to start from established public benchmarks before expanding scope.
+
+These are listed for completeness, not as commitments. Given the project's emphasis on testing one hypothesis at a time, none of these have a scheduled experiment yet.
 
 ---
 

@@ -16,7 +16,9 @@
 
 [What Q-MATIS Is Today](#what-q-matis-is-today) •
 [Built & Verified](#built--verified) •
-[Experiment 2](#experiment-2-scientific-memory-hypothesis) •
+[Experiment 2: Formation Energy](#experiment-2-scientific-memory-hypothesis-formation-energy) •
+[Experiment 3: Phonon Frequency](#experiment-3-generalization-test-phonon-frequency) •
+[What We Now Know](#what-we-now-know-across-both-experiments) •
 [Research Philosophy](#research-philosophy) •
 [Open Research Questions](#open-research-questions) •
 [Long-Term Vision](#long-term-vision) •
@@ -39,6 +41,8 @@ The emphasis is deliberately on **experimentation before architecture**. Every m
 
 Q-MATIS is **not** a universal materials foundation model, an AI operating system, or a proven scientific memory system today. Those remain long-term research directions rather than established capabilities.
 
+Two controlled experiments have now been completed, across two independent physical properties. Both are summarized below in full, including the confounds discovered and corrected along the way.
+
 ---
 
 # Built & Verified
@@ -53,9 +57,8 @@ The following components exist in the repository today.
 - Experiment configuration management
 - Checkpoint serialization
 - Multi-seed experiment execution
-- Statistical evaluation utilities
-
----
+- Statistical evaluation utilities (paired t-tests, confidence intervals, win/loss tallies)
+- Structure deduplication cache (`experiments/shared/dedup_cache.py`), using `pymatgen.analysis.structure_matcher.StructureMatcher` to prevent redundant candidate generation
 
 ## Scientific Data Infrastructure
 
@@ -73,132 +76,106 @@ Q-MATIS currently includes an append-only data model capable of recording:
 - environment metadata
 - failure logs
 
-The purpose of this infrastructure is **reproducibility**.
-
-Whether this accumulated information improves future learning remains an open research question.
-
----
+The purpose of this infrastructure is **reproducibility**. Whether this accumulated information improves future learning has now been tested twice — see below.
 
 ## Engineering Principles
 
-Current development follows several engineering constraints:
-
 - Append-only records whenever practical.
-- Reproducible experiments.
+- Reproducible experiments, with raw per-seed results saved alongside every summary statistic.
 - Versioned configurations.
 - Multi-seed evaluation.
-- Explicit statistical reporting.
+- Explicit statistical reporting, including comparisons that don't support the hypothesis being tested.
 - Negative results are preserved instead of discarded.
 - Claims must follow evidence rather than precede it.
 
 ---
 
-# Experiment 2: Scientific Memory Hypothesis
-
-The first major scientific question investigated by Q-MATIS was:
-
-> **Does recording why a material was rejected provide useful learning signal beyond simply having additional training data?**
-
----
+# Experiment 2: Scientific Memory Hypothesis (Formation Energy)
 
 ## Hypothesis
-
 Rejected materials may improve downstream prediction if the model learns **why** they were rejected.
 
-This was evaluated using formation-energy prediction.
-
----
-
-## Experimental Design
-
-Four training configurations were compared.
+## Design
+Four training configurations were compared on formation-energy prediction (CGCNN, Matbench-derived dataset), using a preregistered protocol, identical dataset splits, 10 random seeds, paired statistical testing, and explicit negative controls:
 
 | Run | Description |
-|------|-------------|
-| **Run A** | Baseline (accepted materials only) |
-| **Run B1** | Accepted + rejected materials with zero-gradient control |
-| **Run B2** | Accepted + rejected materials with auxiliary rejection-reason supervision |
-| **Run C** | Accepted + rejected materials with randomly scrambled rejection labels |
+|---|---|
+| **A** | Baseline (accepted materials only) |
+| **B1** | Accepted + rejected, zero-gradient control |
+| **B2** | Accepted + rejected, auxiliary rejection-reason supervision |
+| **C** | Accepted + rejected, scrambled rejection-reason labels |
 
-Key design choices:
+## Result: Not Supported
+Run B2 showed a higher mean than baseline, but the difference was not statistically significant (p = 0.17, CI crossing zero). More importantly, **B2 did not outperform B1** — it lost to the zero-gradient control on 7 of 10 seeds. Whatever benefit existed could not be attributed to rejection-reason supervision.
 
-- preregistered protocol
-- identical dataset splits across all four arms, per seed
-- paired evaluation
-- 10 random seeds
-- paired statistical testing (mean difference, 95% CI, p-value)
-- explicit negative controls
+## The Follow-Up Mystery, and Its Resolution
+Run B1 itself beat the original baseline (Run A) with p = 0.009 — a real effect, but an unexplained one, since B1 receives zero gradient signal from rejected structures. The leading hypothesis was that mixing rejected structures into batches increased the number of gradient steps per epoch (~164 in B1/B2/C vs. ~125 in A), and that this — not any information content — explained the gap.
 
-The inclusion of **Run B1** was particularly important because it isolated the effect of adding rejected samples from the effect of actually learning their rejection reasons. Run B1 receives zero gradient signal from rejected structures, so any change relative to Run A in this arm cannot come from information content — only from batch composition.
+**This was tested directly.** A matched-step-count control (Run A′: identical to A, batch size reduced so its step count matched B1/B2/C) was run across the same 10 seeds. Result:
 
----
+- **Run A′**: 0.3525 ± 0.0285 Test MAE
+- **Run B1**: 0.3537 ± 0.0194 Test MAE
+- **Mean difference**: 0.0012 (95% CI: [-0.0199, 0.0224]), p = 0.898 — statistically indistinguishable.
 
-## Preregistered Success Criterion
+**The batch-dynamics explanation is confirmed.** Run B1 did not benefit from any implicit regularization or "memory" of rejected structures — it simply took more gradient steps. Extending the comparison further: A′ is also statistically indistinguishable from B2 (p = 0.377) and C (p = 0.877), and B1/B2/C are mutually indistinguishable from each other (all p > 0.25). No configuration involving rejected-structure data — with or without auxiliary supervision — showed a detectable effect once baseline training was correctly step-matched.
 
-The primary hypothesis would only be considered supported if:
-
-1. Auxiliary supervision (Run B2) improved over the baseline (Run A) by at least the preregistered threshold.
-2. Run B2 also meaningfully outperformed Run B1, demonstrating that the gain came from the rejection-reason information rather than other training effects (e.g. batch composition, effective step count).
-
-Both conditions were required. Meeting only one does not count as support for the hypothesis.
+*(Methodology notes: `drop_last=False` was confirmed identical across all DataLoaders. Loss averaging was confirmed to use only accepted-sample denominators, ruling out an implicit gradient-scaling confound. A′ showed the highest variance among the five arms (std = 0.0285), making it the noisiest-behaving arm alongside being the best-performing one.)*
 
 ---
 
-## Result
+# Experiment 3: Generalization Test (Phonon Frequency)
 
-**The preregistered hypothesis was not supported.**
+## Purpose
+Test whether Experiment 2's null result generalizes to a different physical property, or was specific to formation energy.
 
-Across ten random seeds:
+## Property
+Weighted last-phonon-DOS peak frequency (cm⁻¹) from the `matbench_phonons` dataset — a vibrational/lattice-dynamics quantity related to, but distinct from, thermal conductivity.
 
-| Comparison | Mean MAE Difference | 95% CI | p-value | Win/Loss (seeds) |
-|---|---|---|---|---|
-| Run A vs Run B2 | 0.0145 | [-0.0076, 0.0366] | 0.17 | B2 beat A: 8/10 |
-| Run A vs Run B1 | 0.0245 | [0.0079, 0.0412] | 0.009 | B1 beat A: 9/10 |
-| Run B1 vs Run B2 | -0.0100 | [-0.0290, 0.0089] | 0.26 | B2 beat B1: 3/10 |
-| Run C vs Run B2 | — | — | 0.37 | B2 beat C: 4/10 |
+## Design Corrections Applied From the Start
+This experiment incorporated every lesson from Experiment 2 before training began, rather than discovering them after the fact:
 
-Run B2's mean MAE was lower than Run A's, but this difference was **not statistically significant** (p = 0.17, confidence interval crosses zero). Taken alone, this result would already be too weak to call a positive finding.
+- The step-matched A′ baseline was used as the baseline from the outset (no naive unmatched baseline was run first).
+- Dataset size (1,265 structures total — far smaller than Experiment 2's ~16,000) was addressed by increasing seeds to 20 and fixing the train/test split (1,012/253) once, reused identically across all seeds, so seed variation isolated model/training variance rather than compounding it with split-sampling variance.
+- A convergence pilot caught an undertrained baseline at the originally-planned 10 epochs; epoch count was increased to 50 after confirming convergence against a held-out validation split.
+- A test-set leakage flaw discovered during this process — checkpoints had implicitly been selected using test performance rather than a genuine holdout — was corrected here (validation-based early stopping) and retroactively flagged in `FINDINGS_v2.md` and `FINDINGS_v3.md`, since the same flaw likely affected Experiment 2's absolute (but probably not relative) MAE values.
 
-More importantly, Run B2 **did not outperform Run B1** — in fact it lost to the zero-gradient control on 7 of 10 seeds, and lost to the scrambled-label control on 6 of 10 seeds. Run B1, which receives no information at all from rejected structures, improved over baseline with a result *more* statistically significant (p = 0.009) than Run B2's.
+## Result: Inconclusive / Not Supported
 
-This means the observed A→B2 improvement cannot be attributed to rejection-reason supervision specifically. Whatever benefit exists appears to come from something present in Run B1 as well — i.e., something unrelated to the content of the rejection labels.
+| Arm | Mean MAE | Std (ddof=0) |
+|---|---|---|
+| A′ (baseline) | 128.35 | 14.17 |
+| B1 (rejected, no aux) | 125.10 | 10.05 |
+| B2 (rejected + aux) | 123.61 | 11.43 |
+| C (rejected + scrambled aux) | 124.51 | 13.16 |
 
-### Unresolved: Why Did Run B1 Also Beat Baseline?
+**B2 vs A′ (primary test):** +3.69% relative improvement (clears the preregistered 3% threshold), but 95% CI crosses zero asymmetrically ([-1.60, +11.07]), p = 0.134, and the win/loss split across 20 seeds was a near coin-flip (11/9). This result is honestly labeled **INCONCLUSIVE**, not a confident null — the same rigor applied to false positives elsewhere in this project applies here to false negatives too.
 
-**This is currently the most important open question raised by Experiment 2, and it has not been answered.**
+**B1 / B2 / C mutual-comparison matrix:** all three pairwise comparisons among the augmented arms show ≤1% relative difference and p > 0.50. This part of the result is decisively null — the augmented arms are statistically indistinguishable from each other regardless of whether the rejection-reason label is real, scrambled, or absent entirely.
 
-A leading candidate explanation is that mixing rejected structures into training batches changes optimization dynamics — for example, more accepted-only gradient steps per epoch when batches are diluted with rejected samples. This is a plausible hypothesis, not a confirmed one. **A matched-step-count control (rerunning Run A with batch size or step count matched to the B1/B2/C configuration) has not yet been performed.** Until that control is run, "batch dynamics" should be treated as the leading hypothesis for Run B1's result, not as an established explanation.
+A′'s comparatively high variance (std = 14.17) appears partly driven by a handful of seeds (42, 48, 57, 59) where the smaller-batch baseline trained less stably — plausibly an artifact of reduced batch size increasing gradient noise, rather than evidence that rejected-data arms provide a real benefit.
+
+**Overall outcome: NOT SUPPORTED**, on the compound preregistered criterion. The primary comparison is inconclusive rather than cleanly null, but the mutual-comparison matrix rules out the auxiliary rejection-reason signal specifically as the source of any effect — consistent with, though less decisive than, Experiment 2's result.
 
 ---
 
-## What We Actually Learned
+# What We Now Know, Across Both Experiments
 
-Experiment 2 did **not** prove that Scientific Memory improves downstream models.
+Two independent, preregistered, confound-corrected experiments — on two unrelated physical properties, using two different dataset scales — have both failed to find support for the hypothesis that auxiliary rejection-reason supervision improves downstream property prediction:
 
-It also did **not** prove that Scientific Memory is useless.
+- **Formation energy** (N ≈ 16,000, 10 seeds): decisively not supported. Every rejected-data configuration was statistically indistinguishable from a correctly step-matched baseline.
+- **Phonon frequency** (N = 1,265, 20 seeds): not supported on the compound criterion; the primary comparison is inconclusive rather than cleanly null, but the mutual-comparison matrix rules out the auxiliary-label mechanism specifically.
 
-The experiment falsified one specific, narrow formulation:
+This eliminates one specific, narrow formulation of the "Scientific Memory" hypothesis:
 
-> Explicit rejection-reason labels provide useful auxiliary supervision for formation-energy prediction.
+> Explicit rejection-reason labels provide useful auxiliary supervision for downstream property prediction.
 
-It eliminated that specific mechanism. It did not eliminate the broader question of whether rejected structures or decision histories can contribute to future learning through some other mechanism. Other formulations remain open, including:
-
-- self-supervised learning from rejected structures
-- contrastive representation learning
-- curriculum learning
-- uncertainty-aware learning
-- retrieval-based approaches
-- representation learning using complete experiment history
-
-These remain hypotheses requiring independent evaluation.
+It does **not** eliminate the broader question of whether rejected structures can contribute to learning through some other mechanism (self-supervised pretraining, contrastive learning, retrieval-based approaches). Those remain open, untested hypotheses — see below.
 
 ---
 
 # Research Philosophy
 
-The primary objective of Q-MATIS is not to defend architectural ideas.
-
-It is to test them.
+The primary objective of Q-MATIS is not to defend architectural ideas. It is to test them.
 
 Whenever possible, new ideas are evaluated using:
 
@@ -209,60 +186,31 @@ Whenever possible, new ideas are evaluated using:
 - statistical significance testing
 - public reporting of positive and negative results
 
-If an experiment contradicts an earlier design assumption, the assumption changes.
+If an experiment contradicts an earlier design assumption, the assumption changes. The codebase exists to support that process. Infrastructure is not built to justify a predetermined conclusion — it is built to make conclusions testable. A negative result that eliminates an incorrect hypothesis is treated as a successful outcome, not a setback to be minimized in the writeup.
 
-The codebase exists to support that process. Infrastructure is not built to justify a predetermined conclusion — it is built to make conclusions testable. A negative result that eliminates an incorrect hypothesis is treated as a successful outcome, not a setback to be minimized in the writeup.
+Two confounds were discovered mid-experiment during this process (a batch-dynamics artifact in Experiment 2, a test-set leakage flaw discovered while designing Experiment 3) and corrected transparently, with prior findings retroactively caveated rather than silently left as-is.
 
 ---
 
 # Open Research Questions
 
-Current development is organized around research questions rather than feature milestones.
+The following remain genuinely untested. Question 5 from earlier iterations of this document (why did the zero-gradient control beat baseline?) has been resolved above and removed from this list.
 
 ## Question 1
-
 **Can rejected structures improve learned representations without explicit rejection labels?**
-
-Possible approaches:
-
-- contrastive learning
-- masked graph modeling
-- self-supervised pretraining
+Possible approaches: contrastive learning, masked graph modeling, self-supervised pretraining. This is the most promising remaining direction given both experiments above ruled out the *label-based* mechanism specifically, without testing label-free mechanisms.
 
 ## Question 2
-
 **Does complete experiment provenance improve retrieval or downstream reasoning?**
-
-Possible evaluation:
-
-- retrieval benchmarks
-- experiment recommendation
-- reproducibility analysis
+Possible evaluation: retrieval benchmarks, experiment recommendation, reproducibility analysis.
 
 ## Question 3
-
 **Which information is actually worth preserving?**
-
-Rather than assuming every piece of metadata is valuable, future experiments will evaluate individual components such as:
-
-- optimizer history
-- model checkpoints
-- failed candidates
-- DFT outputs
-- uncertainty estimates
-- experiment lineage
+Future experiments will evaluate individual components (optimizer history, model checkpoints, failed candidates, DFT outputs, uncertainty estimates, experiment lineage) rather than assuming all metadata is equally valuable.
 
 ## Question 4
-
 **Can one encoder support multiple materials-property prediction tasks without degrading performance?**
-
 Evaluation will begin using established public benchmarks before expanding toward broader multi-task settings.
-
-## Question 5 (raised directly by Experiment 2)
-
-**Is the Run A vs Run B1 improvement a real optimization effect, or a batch-composition artifact?**
-
-Requires a matched-step-count control run before any of Questions 1–4 can be interpreted cleanly, since any future experiment that mixes rejected structures into training batches will inherit this same unresolved confound.
 
 ---
 
@@ -277,7 +225,7 @@ If the underlying hypotheses continue to survive experimental testing over the c
 - reusable datasets built from accumulated experimental history
 - AI-assisted materials discovery workflows
 
-These are **research ambitions**, not current capabilities. Their feasibility depends entirely on future experimental evidence, including the still-unresolved questions raised above.
+These are **research ambitions**, not current capabilities. Their feasibility depends entirely on future experimental evidence — including the open questions above, all of which remain untested as of this writing.
 
 ---
 

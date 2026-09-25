@@ -1,0 +1,12 @@
+# Environment Log
+- **Platform**: Windows-11-10.0.26200-SP0
+- **Python**: 3.12.13
+- **PyTorch**: 2.6.0+cu124
+- **PyG**: 2.8.0
+- **CUDA Available**: True
+- **GPU Model**: NVIDIA GeForce RTX 3050 6GB Laptop GPU
+- **Pipeline Stage GPU/CPU Breakdown**:
+  - **Data Parsing (JSON -> PyMatgen)**: CPU (Multiprocessed)
+  - **Graph Building (Distance / Radius Graph)**: CPU (PyMatgen neighbor lists are CPU bound, parallelized via multiprocessing, while tensor prep is vectorized)
+  - **DataLoader Batching**: CPU (with `pin_memory=True`)
+  - **Model Training (Forward/Backward/Loss)**: GPU (`.to('cuda')`)

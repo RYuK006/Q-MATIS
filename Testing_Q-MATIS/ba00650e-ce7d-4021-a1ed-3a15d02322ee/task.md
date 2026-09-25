@@ -1,0 +1,10 @@
+- [x] Setup Python environment (`alignn`, `matbench`, etc.)
+- [x] Create project directories
+- [x] Write `results/preregistration.md`
+- [ ] Implement data acquisition and reject set generation (`01_data_prep.py`)
+- [ ] Run `01_data_prep.py` to get datasets
+- [ ] Write `results/dataset_provenance.md`
+- [ ] Implement `02_train.py` for Run A, Run B, and Run C (scrambled control)
+- [ ] Execute training runs (A, B, C for multiple seeds)
+- [ ] Write `results/FINDINGS.md`
+- [ ] Write `walkthrough.md`

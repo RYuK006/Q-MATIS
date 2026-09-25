@@ -79,6 +79,21 @@ class PredictionRecord:
     timestamp: str = field(default_factory=lambda: datetime.utcnow().isoformat())
 
 @dataclass
+class ObservationRecord:
+    id: str = field(default_factory=lambda: gen_id("OBS"))
+    property_name: str = ""
+    value: float = 0.0
+    units: str = ""
+    value_type: str = "scalar" # scalar, tensor, spectrum
+    method: str = "prediction" # experiment, simulation, prediction
+    uncertainty: Optional[float] = None
+    conditions: Dict[str, Any] = field(default_factory=dict)
+    provenance: Dict[str, Any] = field(default_factory=dict)
+    quality: Dict[str, Any] = field(default_factory=dict)
+    rights: Dict[str, Any] = field(default_factory=dict)
+    timestamp: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+
+@dataclass
 class EmbeddingRecord:
     id: str = field(default_factory=lambda: gen_id("EMB"))
     experiment_id: str = ""
@@ -115,6 +130,7 @@ class MaterialEntity:
     decisions: List[DecisionRecord] = field(default_factory=list)
     predictions: List[PredictionRecord] = field(default_factory=list)
     embeddings: List[EmbeddingRecord] = field(default_factory=list)
+    observations: List[ObservationRecord] = field(default_factory=list)
     
     created_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
 

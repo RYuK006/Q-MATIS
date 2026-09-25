@@ -1,0 +1,143 @@
+﻿commit e3821b87873733fe6761f0c79c3ee290943f063d
+Author: Q-MATIS Bot <bot@qmatis.org>
+Date:   Tue Jul 7 18:48:24 2026 +0530
+
+    docs: redefine Q-MATIS as a universal materials intelligence platform and scientific memory engine
+
+commit b0a881afcfd3b7fd999897904c67d7249e5d553c
+Author: Q-MATIS Bot <bot@qmatis.org>
+Date:   Tue Jul 7 18:27:58 2026 +0530
+
+    docs: redefine Q-MATIS as a universal materials intelligence platform
+
+commit c90d10fc255c0413039937542ac529f388371ec2
+Author: Q-MATIS Bot <bot@qmatis.org>
+Date:   Tue Jul 7 07:00:53 2026 +0530
+
+    Update README: Reframe as Scientific OS and fix logo render
+
+commit 0ccf4072aaf068591ef298434e7d845d38f61bd0
+Author: Q-MATIS Bot <bot@qmatis.org>
+Date:   Tue Jul 7 06:51:40 2026 +0530
+
+    Update README: Remove explicit denial of superconductor predictor
+
+commit 1c6e8373c9c24874b71b36c48a0bdc3efb0b9663
+Author: Q-MATIS Bot <bot@qmatis.org>
+Date:   Tue Jul 7 06:37:51 2026 +0530
+
+    Redefine Q-MATIS as a Scientific Operating System and public community registry
+
+commit ecc531d0c3dd7b650f8ffe6cc6e3f31ebd5d7ca7
+Author: Q-MATIS Bot <bot@qmatis.org>
+Date:   Tue Jul 7 06:29:27 2026 +0530
+
+    Rewrite README for Phase B1-B3 goals
+
+commit 417ec73c00c6eb2a697f97a6bfdee38c2b73c731
+Author: Q-MATIS Bot <bot@qmatis.org>
+Date:   Tue Jul 7 06:25:40 2026 +0530
+
+    Add .nojekyll to fix GitHub Pages build
+
+commit 095963acab9b372ea0bccf35bd8a5edd94640718
+Author: Q-MATIS Bot <bot@qmatis.org>
+Date:   Tue Jul 7 01:35:35 2026 +0530
+
+    Fix test failing on MaterialEntity return type
+
+commit 6493643ff09486c2f6d0259c0185e3d93b35ff9a
+Author: Q-MATIS Bot <bot@qmatis.org>
+Date:   Tue Jul 7 01:28:13 2026 +0530
+
+    Force add logo.png
+
+commit 5523dc7eff7ba43f56a789b892d7727f7aa476cd
+Author: Q-MATIS Bot <bot@qmatis.org>
+Date:   Tue Jul 7 01:24:02 2026 +0530
+
+    Add Q-MATIS logo and deploy Phase B3 Research State Manager
+
+commit 81407da01561247252a1dfdaaa2c03e5be76878f
+Author: Q-MATIS Bot <bot@qmatis.org>
+Date:   Sat Jul 4 17:28:37 2026 +0530
+
+    feat: Phase 1 Physics-Aware Candidate Generation Engine
+
+commit 02f901e4bab5b048122aff877d06ebbf4e20467a
+Author: Q-MATIS Bot <bot@qmatis.org>
+Date:   Sat Jul 4 17:02:58 2026 +0530
+
+    ci: GitHub Action workflows and community templates
+
+commit d49e37fc3ea7891f7b860f391583e51dd4f3c71c
+Author: Q-MATIS Bot <bot@qmatis.org>
+Date:   Sat Jul 4 17:02:58 2026 +0530
+
+    docs: World-class README and architecture diagrams
+
+commit 96e79ad98c2587c739130f81a179d294f48ad40f
+Author: Q-MATIS Bot <bot@qmatis.org>
+Date:   Sat Jul 4 17:02:57 2026 +0530
+
+    docs: Subsystem technical documentation
+
+commit 9b0e9d019f77b08de5e4fa2b93c4d138151c2569
+Author: Q-MATIS Bot <bot@qmatis.org>
+Date:   Sat Jul 4 17:02:57 2026 +0530
+
+    feat: Benchmarking utilities and analysis scripts
+
+commit 1d533590719b80e516244c03cd087f1b520e1d33
+Author: Q-MATIS Bot <bot@qmatis.org>
+Date:   Sat Jul 4 17:02:57 2026 +0530
+
+    feat: Active learning and candidate generation engine
+
+commit 93d0a6eb32b19d05619670f0e23076b835a77e0e
+Author: Q-MATIS Bot <bot@qmatis.org>
+Date:   Sat Jul 4 17:02:57 2026 +0530
+
+    feat: Deep Ensemble uncertainty calibration (PICP/MPIW)
+
+commit ba7e8f6f92ad9f24d08e5dc7dbc8fd1421add19d
+Author: Q-MATIS Bot <bot@qmatis.org>
+Date:   Sat Jul 4 17:02:56 2026 +0530
+
+    feat: Multi-task learning and robust training loop with SQLite caching
+
+commit 36a93a9b09692403c22743489ed12bb41f557ec9
+Author: Q-MATIS Bot <bot@qmatis.org>
+Date:   Sat Jul 4 17:02:56 2026 +0530
+
+    feat: ALIGNN Native PyG implementation
+
+commit 289c8a36bb6328fc19ca0bccb0a7f14a8fabce06
+Author: Q-MATIS Bot <bot@qmatis.org>
+Date:   Sat Jul 4 17:02:56 2026 +0530
+
+    feat: CGCNN baseline implementation and encoder registry
+
+commit 6f2590ea4772e46716807bfa1d2b52c5a23c7907
+Author: Q-MATIS Bot <bot@qmatis.org>
+Date:   Sat Jul 4 17:02:56 2026 +0530
+
+    feat: PyTorch Geometric graph construction and feature engineering
+
+commit 52ecc72ce106c0302990d06bb6650764de1861ed
+Author: Q-MATIS Bot <bot@qmatis.org>
+Date:   Sat Jul 4 17:02:56 2026 +0530
+
+    feat: Modular data source abstraction and Materials Project integration
+
+commit 9d076d9fedeb3426aaf1b4aa0e2606170ae6108f
+Author: Q-MATIS Bot <bot@qmatis.org>
+Date:   Sat Jul 4 17:02:55 2026 +0530
+
+    feat: Configuration system via YAML
+
+commit 975a8dd850b8e7ebcee02784bff1827143aaa95a
+Author: Q-MATIS Bot <bot@qmatis.org>
+Date:   Sat Jul 4 17:02:55 2026 +0530
+
+    Initial commit: Project initialization, License, and environment setup

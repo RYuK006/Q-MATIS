@@ -6,7 +6,7 @@ import datetime
 import random
 import numpy as np
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional
 import concurrent.futures
 from functools import lru_cache
 
@@ -321,7 +321,8 @@ class PhysicsAwareCandidateEngine:
         ))
         
         self.enable_duplicate_detection = filters_conf.get("duplicate_detection", True)
-        self._seen_formulas = set()
+        self._seen_structures = []
+        self._structure_matcher = StructureMatcher()
 
     def generate(self, base_structure: Structure, strategy: str = "substitution", substitutions: List[Any] = None, batch_id: Optional[str] = None) -> List[Dict]:
         """
@@ -349,7 +350,7 @@ class PhysicsAwareCandidateEngine:
             self.registry.lake.execute_write("""
                 INSERT INTO generation_failures (experiment_id, parent_id, generation_strategy, exception_message, stack_trace, timestamp)
                 VALUES (?, ?, ?, ?, ?, ?)
-            """, (self.experiment_id, base_structure.composition.reduced_formula, strategy, str(e), tb, datetime.utcnow().isoformat()))
+            """, (self.experiment_id, base_structure.composition.reduced_formula, strategy, str(e), tb, datetime.datetime.utcnow().isoformat()))
             return []
         
         last_processed = -1
@@ -365,13 +366,18 @@ class PhysicsAwareCandidateEngine:
             if i <= last_processed:
                 continue # Skip already processed
                 
-            form = cand.composition.reduced_formula
+            is_dup = False
             if self.enable_duplicate_detection:
-                if form in self._seen_formulas:
+                for seen_s in self._seen_structures:
+                    if self._structure_matcher.fit(seen_s, cand):
+                        is_dup = True
+                        break
+                        
+                if is_dup:
                     ent = MaterialEntity(
                         id=gen_id("MAT"),
                         formula=cand.composition.formula,
-                        reduced_formula=form,
+                        reduced_formula=cand.composition.reduced_formula,
                         source="AI-Generated",
                         parent_id=base_structure.composition.reduced_formula,
                         generation_strategy=strategy,
@@ -379,14 +385,14 @@ class PhysicsAwareCandidateEngine:
                     )
                     ent.decisions.append(DecisionRecord(
                         experiment_id=self.experiment_id,
-                        action="Rejected", reason="Duplicate detected", parameters={}, responsible_module="DuplicateDetection"
+                        action="Rejected", reason="Duplicate structure detected", parameters={}, responsible_module="DuplicateDetection"
                     ))
                     self.registry.register_material(ent)
                     if batch_id:
                         # Update cursor even for duplicates to avoid re-evaluating them on crash
                         self.state_manager.update_candidate_cursor(batch_id, self.experiment_id, len(raw_candidates), i)
                     continue
-                self._seen_formulas.add(form)
+                self._seen_structures.append(cand)
             unique_candidates.append((i, cand))
             
         args_list = [
@@ -406,17 +412,15 @@ class PhysicsAwareCandidateEngine:
         
         if self.use_mp and not batch_id:
             with concurrent.futures.ProcessPoolExecutor() as executor:
-                results = list(executor.map(_process_candidate, args_list))
+                res_entities = list(executor.map(_process_candidate, args_list))
+                results = list(zip([arg['raw_index'] for arg in args_list], res_entities))
         else:
             results = []
             for arg in args_list:
                 res = _process_candidate(arg)
-                results.append(res)
-                if batch_id:
-                    # Update DB cursor (sync) using the absolute raw_index
-                    self.state_manager.update_candidate_cursor(batch_id, self.experiment_id, len(raw_candidates), arg['raw_index'])
+                results.append((arg['raw_index'], res))
                 
-        for ent in results:
+        for raw_index, ent in results:
             # Optionally predict and encode if models are available
             if not ent.is_rejected and self.model and self.encoder:
                 try:
@@ -458,6 +462,10 @@ class PhysicsAwareCandidateEngine:
                         responsible_module="PhysicsAwareCandidateEngine"
                     ))
                 self.registry.register_material(ent)
+            
+            # Cursor update *after* results are safely registered
+            if batch_id:
+                self.state_manager.update_candidate_cursor(batch_id, self.experiment_id, len(raw_candidates), raw_index)
             
             if not ent.is_rejected:
                 valid_candidates.append(ent)

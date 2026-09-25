@@ -93,3 +93,9 @@ def export_qe(structure: Structure, out_dir: str, tc: float):
     pw_in.write_file(os.path.join(out_dir, "pw.in"))
     
     logger.info(f"Exported Quantum ESPRESSO package to {out_dir}")
+
+def run_dft_simulation(structure: Structure, method: str = "QE"):
+    """
+    Executes a complete simulation, convergence-checking, parsing, and validation workflow.
+    """
+    raise NotImplementedError("Complete simulation, convergence-checking, parsing, and validation workflow is not yet implemented.")

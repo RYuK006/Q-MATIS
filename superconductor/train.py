@@ -42,7 +42,8 @@ def train_one_epoch(model, dataloader, optimizer, loss_fns, loss_weighter, scale
                 task_total_samples[task_name] += y.numel()
                 
                 if valid_count > 0:
-                    raw_loss = loss_fns[task_name](pred, y)
+                    y_safe = torch.where(mask, y, torch.zeros_like(y))
+                    raw_loss = loss_fns[task_name](pred, y_safe)
                     # Use only valid losses
                     masked_loss = (raw_loss * mask).sum() / valid_count
                     losses[task_name] = masked_loss
@@ -95,7 +96,8 @@ def evaluate(model, dataloader, loss_fns, loss_weighter, device):
                 valid_count = mask.sum().item()
                 
                 if valid_count > 0:
-                    raw_loss = loss_fns[task_name](pred, y)
+                    y_safe = torch.where(mask, y, torch.zeros_like(y))
+                    raw_loss = loss_fns[task_name](pred, y_safe)
                     losses[task_name] = (raw_loss * mask).sum() / valid_count
                 
                 # We save all predictions, but targets will have NaNs where missing

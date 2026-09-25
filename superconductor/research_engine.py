@@ -93,7 +93,7 @@ class ResearchExecutionEngine:
             # Simple linear state machine
             start_index = STAGES.index(self.experiment.current_stage)
             
-            for stage in STAGES[start_index+1:]:
+            for stage in STAGES[start_index:]:
                 if stage == "COMPLETED":
                     self._transition_to(stage)
                     self.experiment.status = "COMPLETED"
@@ -131,8 +131,7 @@ class ResearchExecutionEngine:
         elif stage == "REPORT_GENERATION":
             self._stage_report_generation()
         else:
-            logger.info(f"Stage {stage} is currently a placeholder.")
-            time.sleep(1) # Simulate some work
+            raise NotImplementedError(f"Stage {stage} is currently unsupported and cannot be bypassed.")
 
     def _stage_data_download(self):
         # We hook into data.py logic here eventually.
@@ -143,19 +142,13 @@ class ResearchExecutionEngine:
         if not pretrain.get("enabled", False):
             logger.info("Pretraining disabled in config. Skipping.")
             return
-        # Stub
-        time.sleep(2)
+        raise NotImplementedError("Pretraining stage execution is not yet wired to automated orchestration.")
         
     def _stage_fine_tuning(self):
-        # Stub
-        time.sleep(2)
+        raise NotImplementedError("Fine-tuning stage execution is not yet wired to automated orchestration.")
         
     def _stage_candidate_generation(self):
-        # Logic from candidate_gen.py
-        # Utilizes state_manager.get_candidate_cursor() and checkpoint_manager
-        time.sleep(2)
+        raise NotImplementedError("Candidate generation stage execution is not yet wired to automated orchestration.")
 
     def _stage_report_generation(self):
-        # Generates HTML and JSON reports
-        logger.info("Generating automatic reports...")
-        time.sleep(1)
+        raise NotImplementedError("Report generation stage execution is not yet wired to automated orchestration.")

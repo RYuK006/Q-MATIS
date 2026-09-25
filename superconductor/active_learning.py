@@ -17,7 +17,11 @@ def estimate_uncertainty(models, graph_data, device):
             model.to(device)
             model.eval()
             out = model(graph_data)
-            preds.append(out.item())
+            if isinstance(out, dict):
+                val = out.get('tc', list(out.values())[0])
+                preds.append(val.item())
+            else:
+                preds.append(out.item())
             
     preds = np.array(preds)
     mean_tc = np.mean(preds)

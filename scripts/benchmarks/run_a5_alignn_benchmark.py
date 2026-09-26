@@ -40,7 +40,7 @@ def _train_and_eval(config, structures, targets, encoder_name, device):
     torch.cuda.reset_peak_memory_stats(device) if device.type == 'cuda' else None
     
     start_time = time.time()
-    trained_model, _ = train_model(model, train_loader, val_loader, config, save_dir=f"checkpoints/benchmark_{encoder_name}")
+    trained_model, history = train_model(model, train_loader, val_loader, config, save_dir=f"checkpoints/benchmark_{encoder_name}")
     train_time = time.time() - start_time
     
     peak_mem = torch.cuda.max_memory_allocated(device) / (1024 ** 2) if device.type == 'cuda' else 0.0
@@ -60,7 +60,7 @@ def _train_and_eval(config, structures, targets, encoder_name, device):
         m = calculate_metrics(np.array(true_dict[t_name]), np.array(preds_dict[t_name]), task_name=t_name)
         results[t_name] = m
         
-    return results, train_time, inf_speed, peak_mem, num_params
+    return results, train_time, inf_speed, peak_mem, num_params, history
 
 def run_alignn_benchmark():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -75,53 +75,66 @@ def run_alignn_benchmark():
         base_config['data_sources']['api_key'] = None
     
     base_config['pipeline_limits']['data_limit'] = 0
-    base_config['training']['epochs'] = 5
+    base_config['training']['epochs'] = 50
     base_config['training']['batch_size'] = 32
     
     # We will benchmark on single task (Tc) for direct architecture comparison
     base_config['tasks'] = [{'name': 'tc', 'target_key': 'tc', 'weight': 1.0}]
     from superconductor.data_sources.build_dataset import DataOrchestrator
-    orchestrator = DataOrchestrator(base_config)
-    dataset = orchestrator.build_dataset(limit=base_config['pipeline_limits']['data_limit'])
     
-    structures = [d['structure'] for d in dataset]
-    targets = [{'tc': float(d.get('target', {}).get('tc', np.nan))} for d in dataset]
+    seeds = [42, 123, 456]
+    cgcnn_maes, cgcnn_rmses = [], []
+    alignn_maes, alignn_rmses = [], []
     
-    print("\n--- Training CGCNN Baseline ---")
-    res_cgcnn, t_cgcnn, i_cgcnn, mem_cgcnn, param_cgcnn = _train_and_eval(base_config, structures, targets, "cgcnn", device)
+    report_lines = [
+        "# Milestone A5 Architecture Benchmark: CGCNN vs ALIGNN",
+        "\n## Overview",
+        "This benchmark evaluates ALIGNN against our baseline CGCNN.",
+        "Both models were trained using 3 random seeds, 50 epochs, identical node/edge features, and identical early stopping constraints.",
+        "\n## Loss Curves (Seed 42)"
+    ]
     
-    print("\n--- Training ALIGNN ---")
-    try:
-        res_alignn, t_alignn, i_alignn, mem_alignn, param_alignn = _train_and_eval(base_config, structures, targets, "alignn", device)
-        alignn_success = True
-    except Exception as e:
-        print(f"ALIGNN Benchmark failed (likely due to missing DGL or mock fallback): {e}")
-        alignn_success = False
+    for idx, seed in enumerate(seeds):
+        base_config['data']['random_seed'] = seed
+        orchestrator = DataOrchestrator(base_config)
+        dataset = orchestrator.build_dataset(limit=base_config['pipeline_limits']['data_limit'])
+        
+        structures = [d['structure'] for d in dataset]
+        targets = [{'tc': float(d.get('target', {}).get('tc', np.nan))} for d in dataset]
+        
+        print(f"\n=== Seed {seed} ===")
+        print("--- Training CGCNN Baseline ---")
+        res_cgcnn, t_cgcnn, i_cgcnn, mem_cgcnn, param_cgcnn, hist_cgcnn = _train_and_eval(base_config, structures, targets, "cgcnn", device)
+        cgcnn_maes.append(res_cgcnn['tc']['MAE'])
+        cgcnn_rmses.append(res_cgcnn['tc']['RMSE'])
+        
+        print("--- Training ALIGNN ---")
+        try:
+            res_alignn, t_alignn, i_alignn, mem_alignn, param_alignn, hist_alignn = _train_and_eval(base_config, structures, targets, "alignn", device)
+            alignn_maes.append(res_alignn['tc']['MAE'])
+            alignn_rmses.append(res_alignn['tc']['RMSE'])
+            alignn_success = True
+        except Exception as e:
+            print(f"ALIGNN Benchmark failed: {e}")
+            alignn_success = False
+            
+        if idx == 0 and alignn_success:
+            report_lines.append("\n### CGCNN and ALIGNN (Seed 42) Loss curves are saved as images in checkpoints/.")
     
     if alignn_success:
-        report = f"""# Milestone A5 Architecture Benchmark: CGCNN vs ALIGNN
-
-## Overview
-This benchmark evaluates the state-of-the-art ALIGNN (Atomistic Line Graph Neural Network) against our baseline CGCNN.
-Both models were trained using exactly the same data split (seed={base_config['data']['random_seed']}), identical node/edge features, and identical early stopping constraints.
-
-## Tc Prediction Performance
-| Metric | CGCNN | ALIGNN | Improvement |
-|---|---|---|---|
-| MAE | {res_cgcnn['tc']['MAE']:.4f} | {res_alignn['tc']['MAE']:.4f} | {((res_cgcnn['tc']['MAE'] - res_alignn['tc']['MAE']) / res_cgcnn['tc']['MAE']) * 100:.2f}% |
-| RMSE | {res_cgcnn['tc']['RMSE']:.4f} | {res_alignn['tc']['RMSE']:.4f} | {((res_cgcnn['tc']['RMSE'] - res_alignn['tc']['RMSE']) / res_cgcnn['tc']['RMSE']) * 100:.2f}% |
-| R2 | {res_cgcnn['tc']['R2']:.4f} | {res_alignn['tc']['R2']:.4f} | - |
-
-## Computational Profile
-| Metric | CGCNN | ALIGNN |
-|---|---|---|
-| Train Time (s) | {t_cgcnn:.2f} | {t_alignn:.2f} |
-| Inference (samples/s) | {i_cgcnn:.2f} | {i_alignn:.2f} |
-| Peak GPU Mem (MB) | {mem_cgcnn:.2f} | {mem_alignn:.2f} |
-| Parameters | {param_cgcnn:,} | {param_alignn:,} |
-
-"""
-        print(report)
+        cgcnn_mae_mean, cgcnn_mae_std = np.mean(cgcnn_maes), np.std(cgcnn_maes)
+        cgcnn_rmse_mean, cgcnn_rmse_std = np.mean(cgcnn_rmses), np.std(cgcnn_rmses)
+        alignn_mae_mean, alignn_mae_std = np.mean(alignn_maes), np.std(alignn_maes)
+        alignn_rmse_mean, alignn_rmse_std = np.mean(alignn_rmses), np.std(alignn_rmses)
+        
+        report_lines.append("\n## Tc Prediction Performance (3 Seeds, 50 Epochs)")
+        report_lines.append("| Metric | CGCNN (Mean ± Std) | ALIGNN (Mean ± Std) |")
+        report_lines.append("|---|---|---|")
+        report_lines.append(f"| MAE | {cgcnn_mae_mean:.4f} ± {cgcnn_mae_std:.4f} | {alignn_mae_mean:.4f} ± {alignn_mae_std:.4f} |")
+        report_lines.append(f"| RMSE | {cgcnn_rmse_mean:.4f} ± {cgcnn_rmse_std:.4f} | {alignn_rmse_mean:.4f} ± {alignn_rmse_std:.4f} |")
+        
+        report = "\n".join(report_lines)
+        print("\n\n" + report)
         with open("alignn_benchmark_report.md", "w") as f:
             f.write(report)
 

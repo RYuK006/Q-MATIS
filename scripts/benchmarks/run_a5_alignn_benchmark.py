@@ -1,6 +1,10 @@
 import os
+from superconductor.compat import apply_platform_patches
+apply_platform_patches()
 import yaml
 import time
+import logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 import torch
 import numpy as np
 
@@ -65,7 +69,12 @@ def run_alignn_benchmark():
     with open("config.yaml", "r") as f:
         base_config = yaml.safe_load(f)
         
-    base_config['pipeline_limits']['data_limit'] = 1000
+    # We already resolved the dataset in a separate process!
+    # Set api_key to None to prevent importing mp_api.client and crashing PyTorch
+    if 'data_sources' in base_config:
+        base_config['data_sources']['api_key'] = None
+    
+    base_config['pipeline_limits']['data_limit'] = 0
     base_config['training']['epochs'] = 5
     base_config['training']['batch_size'] = 32
     
@@ -117,4 +126,9 @@ Both models were trained using exactly the same data split (seed={base_config['d
             f.write(report)
 
 if __name__ == "__main__":
-    run_alignn_benchmark()
+    try:
+        run_alignn_benchmark()
+    except Exception as e:
+        print(f"FATAL ERROR: {e}")
+        import traceback
+        traceback.print_exc()

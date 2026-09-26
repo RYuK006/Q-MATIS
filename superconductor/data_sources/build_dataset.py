@@ -66,32 +66,29 @@ class DataOrchestrator:
             except Exception:
                 pass
 
+        final_needs = []
+        for item in needs_resolution:
+            if not self.supercon_ds.validate_formula(item['formula']):
+                continue
+            try:
+                red_f = Composition(item['formula']).reduced_formula
+                if red_f in mp_cache_map:
+                    item['structure'] = mp_cache_map[red_f]
+                    dataset.append(item)
+                else:
+                    final_needs.append(item)
+            except Exception:
+                pass
+
         resolved = []
-        from mp_api.client import MPRester
         
-        if self.mp_ds.api_key:
+        if self.mp_ds.api_key and final_needs:
+            from mp_api.client import MPRester
             with MPRester(self.mp_ds.api_key) as mpr:
                 chunk_size = 100
-                for i in tqdm(range(0, len(needs_resolution), chunk_size), desc="Resolving structures"):
-                    chunk = needs_resolution[i:i+chunk_size]
-                    formulas_to_query = []
-                    
-                    for item in chunk:
-                        if not self.supercon_ds.validate_formula(item['formula']):
-                            continue
-                        
-                        try:
-                            red_f = Composition(item['formula']).reduced_formula
-                            if red_f in mp_cache_map:
-                                item['structure'] = mp_cache_map[red_f]
-                                dataset.append(item)
-                            else:
-                                formulas_to_query.append(item['formula'])
-                        except Exception:
-                            pass
-                            
-                    if not formulas_to_query:
-                        continue
+                for i in tqdm(range(0, len(final_needs), chunk_size), desc="Resolving structures"):
+                    chunk = final_needs[i:i+chunk_size]
+                    formulas_to_query = [item['formula'] for item in chunk]
                         
                     # Query MP API for missing formulas
                     retries = 3
@@ -113,7 +110,7 @@ class DataOrchestrator:
                                         'id': str(doc.material_id),
                                         'formula': doc.formula_pretty,
                                         'structure': struct,
-                                        'target': {'formation_energy': 0.0}, # We don't have formation energy for pure resolution, but to keep schema consistent
+                                        'target': {'formation_energy': 0.0},
                                         'metadata': {'source': 'MP'}
                                     })
                             if new_mp_items:
@@ -125,22 +122,21 @@ class DataOrchestrator:
                             
                     # Re-check chunk after query
                     for item in chunk:
-                        if 'structure' not in item or not item['structure']:
-                            try:
-                                red_f = Composition(item['formula']).reduced_formula
-                                if red_f in mp_cache_map:
-                                    item['structure'] = mp_cache_map[red_f]
-                                    dataset.append(item)
-                                    resolved.append(item)
-                            except Exception:
-                                pass
+                        try:
+                            red_f = Composition(item['formula']).reduced_formula
+                            if red_f in mp_cache_map:
+                                item['structure'] = mp_cache_map[red_f]
+                                dataset.append(item)
+                                resolved.append(item)
+                        except Exception:
+                            pass
                                 
                     # Resumable save: update supercon cache with resolved structures
                     if resolved:
                         self.supercon_ds.save_to_cache("SuperCon", resolved)
                         resolved = []
-        else:
-            logger.error("No MP_API_KEY provided. Cannot resolve structures.")
+        elif final_needs:
+            logger.warning("No MP_API_KEY provided (or skipped). Cannot resolve remaining missing structures.")
             
         logger.info(f"Dataset resolution complete. {len(dataset)} items have valid structures.")
         if limit > 0:

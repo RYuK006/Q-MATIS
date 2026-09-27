@@ -1,53 +1,42 @@
-# Architecture of the Superconductor Discovery AI
+# Q-MATIS Architecture Document
 
-This document details the architectural decisions and internal workings of the GNN-based superconductor discovery pipeline.
+## Overview
+Q-MATIS currently utilizes a **Composition-Only** architecture for predicting superconductor critical temperatures (Tc). The architecture is designed to bypass the limitations of structure-based models when dealing with fractionally doped compounds.
 
-## 1. Graph Representation
+## Why Composition-Only?
+Superconducting datasets (like SuperCon) are predominantly composed of continuously doped, fractional solid solutions (e.g., `Ba0.4K0.6Fe2As2`). 
+Structure-based architectures (like ALIGNN or CGCNN) require exact 3D crystal structures, which are typically fetched from databases like Materials Project. However, these databases catalog stoichiometric integer crystals, resulting in two fatal errors:
+1. **Massive Data Loss:** Exact formula matching drops ~90% of the dataset.
+2. **Feature Blindness:** Mapping fractional formulas to un-doped host structures strips the doping fraction out of the graph features, rendering the models incapable of distinguishing between highly doped and lightly doped variants of the same host crystal.
 
-Traditional machine learning models struggle with crystalline materials because they are invariant to rotations, translations, and permutations of the unit cell. Graph Neural Networks (GNNs) naturally respect these symmetries.
+To solve this, Q-MATIS completely replaces the structure-resolution step with a composition-only feature extractor that reads the fractional values directly from the formula.
 
-### Node Features (Atoms)
-Each atom in the crystal is a node. The features are extracted using `pymatgen` and include:
-- **Atomic Number ($Z$)**
-- **Atomic Mass**
-- **Electronegativity**
-- **Group & Period** in the periodic table
-- **Valence Electrons**
+## The Pipeline
 
-These features provide a robust baseline of the atom's chemical identity and reactivity.
+### 1. Composition Parser
+Formulas are parsed using `pymatgen.core.Composition(formula).fractional_composition`. This generates a precise mapping of elements to their fractional presence in the material.
 
-### Edge Features (Bonds)
-Edges represent spatial proximity rather than strict chemical bonds. 
-- A cutoff radius (default: $4.0 \text{ \AA}$) is defined.
-- If the distance between two atoms is less than the cutoff, an edge is formed.
-- The edge feature is simply the 3D physical distance between the atoms.
+### 2. Elemental Feature Extraction
+For each element in the composition, 17 elemental properties are extracted using a Magpie-style featurizer. These include:
+- Atomic Number (Z), Atomic Mass
+- Electronegativity, Covalent/Atomic/Ionic Radii
+- Electron Affinity, Ionization Energy
+- Group, Row, Block (s, p, d, f)
+- Valence, Molar Volume, Polarizability
+- Mendeleev Number, Common Oxidation States
 
-## 2. Graph Neural Network (GNN) Model
+### 3. Fractional Aggregation
+The elemental features are combined into a single feature vector representing the entire composition. This is done via a stoichiometric weighted average:
+```python
+mean_feat = sum(element_feature_vector * fractional_amount)
+```
+This ensures the model inherently "sees" the exact doping levels.
 
-The model is heavily inspired by the **Crystal Graph Convolutional Neural Network (CGCNN)** architecture.
+### 4. Machine Learning Model (Random Forest)
+The aggregated feature vectors are fed into a Random Forest Regressor (100 trees). This ensemble architecture natively handles non-linear relationships between the elemental features and the critical temperature.
 
-### Message Passing (`CGCNNLayer`)
-The network contains 3 to 5 message-passing layers. In each layer:
-1. An atom receives "messages" from all its connected neighbors.
-2. The message is a learned function of the target atom's features, the neighbor's features, and the distance between them (edge feature).
-3. The atom updates its own state by aggregating these messages.
-
-This allows the network to learn complex multi-body interactions and local chemical environments beyond just pairwise bonds.
-
-### Global Pooling & Output
-Because a crystal can have an arbitrary number of atoms in its unit cell, the final atomic features are aggregated into a single, fixed-length "crystal vector" using **Global Mean Pooling**.
-
-A fully-connected Feed Forward Network (Regression Head) takes this crystal vector and outputs a single continuous variable: the predicted Critical Temperature ($T_c$) in Kelvin.
-
-## 3. Training and Loss
-
-- **Loss Function**: High-$T_c$ superconductors are exceptionally rare and appear as extreme outliers. A standard Mean Squared Error (MSE) heavily penalizes outliers. Instead, we use **Huber Loss**, which behaves quadratically for small errors and linearly for large errors, ensuring robust learning without ignoring the most critical discoveries.
-- **Evaluation**: The model splits the dataset into training and validation sets, tracking both Root Mean Squared Error (RMSE) and $R^2$ scores to measure generalization.
-
-## 4. Active Learning & DFT Handoff
-
-The ultimate goal of this pipeline is discovery, handled by the Active Learning Loop.
-
-1. **Candidate Generation**: The system takes known stable structures and performs specific ionic substitutions (e.g., swapping Y for Ba) to generate theoretically novel materials.
-2. **Prediction**: The GNN evaluates the new structure.
-3. **Validation Handoff**: If the predicted $T_c$ exceeds a user-defined threshold, the system flags the material. It generates standard input files (like a VASP POSCAR) to be passed to Density Functional Theory (DFT) software. This external step is crucial to verify if the theoretically generated lattice is dynamically stable and to compute actual electron-phonon coupling constants.
+### 5. Uncertainty Calibration (Deep Ensemble Proxy)
+Uncertainty estimation is critical for materials discovery. Q-MATIS leverages the variance across the individual decision trees within the Random Forest to act as a proxy for Deep Ensembles.
+- **Mean Tc:** The average prediction across all 100 trees.
+- **Uncertainty (1σ):** The standard deviation of the predictions across all 100 trees.
+- **95% Confidence Bounds:** Calculated using `Mean ± 1.96σ`.

@@ -8,18 +8,24 @@ def main():
     parser.add_argument("--db", type=str, default="results/candidates.db", help="Path to SQLite database")
     args = parser.parse_args()
 
-    conn = sqlite3.connect(args.db)
+    conn = sqlite3.connect(args.db, timeout=10.0)
     cursor = conn.cursor()
 
-    # Find the next pending chunk
+    # Use a single atomic UPDATE ... RETURNING to prevent race conditions
+    now = datetime.now().isoformat()
     cursor.execute('''
-        SELECT chunk_id FROM work_queue 
-        WHERE status = 'pending' 
-        ORDER BY chunk_id ASC 
-        LIMIT 1
-    ''')
-    result = cursor.fetchone()
+        UPDATE work_queue 
+        SET status = 'claimed', claimed_at = ?
+        WHERE chunk_id = (
+            SELECT chunk_id FROM work_queue 
+            WHERE status = 'pending' 
+            ORDER BY chunk_id ASC 
+            LIMIT 1
+        )
+        RETURNING chunk_id
+    ''', (now,))
     
+    result = cursor.fetchone()
     if not result:
         print("No pending chunks found in the work queue. All done!")
         conn.close()
@@ -27,15 +33,7 @@ def main():
         
     chunk_id = result[0]
     
-    # Mark as claimed
-    now = datetime.now().isoformat()
-    cursor.execute('''
-        UPDATE work_queue 
-        SET status = 'claimed', claimed_at = ? 
-        WHERE chunk_id = ? AND status = 'pending'
-    ''', (now, chunk_id))
-    
-    # Fetch formulas for this chunk
+    # Fetch formulas for this claimed chunk
     cursor.execute('''
         SELECT formula FROM work_queue 
         WHERE chunk_id = ?

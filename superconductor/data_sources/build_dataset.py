@@ -96,8 +96,8 @@ class DataOrchestrator:
                         try:
                             docs = mpr.summary.search(
                                 formula=formulas_to_query,
-                                is_stable=True,
-                                fields=["material_id", "structure", "formula_pretty"]
+                                energy_above_hull=(0.0, 0.05),
+                                fields=["material_id", "structure", "formula_pretty", "energy_above_hull"]
                             )
                             # Update local map and save to cache
                             new_mp_items = []

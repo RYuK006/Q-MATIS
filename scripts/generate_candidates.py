@@ -75,13 +75,50 @@ def main():
             
     print(f"Validated {len(valid_candidates)} candidates.")
     
-    with open(out_file, 'w', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerow(['formula'])
-        for c in valid_candidates:
-            writer.writerow([c])
+    # Initialize SQLite database for work queue
+    import sqlite3
+    import math
+    os.makedirs("results", exist_ok=True)
+    db_file = "results/candidates.db"
+    
+    conn = sqlite3.connect(db_file)
+    cursor = conn.cursor()
+    
+    # Create work_queue table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS work_queue (
+            formula TEXT PRIMARY KEY,
+            chunk_id INTEGER,
+            status TEXT DEFAULT 'pending',
+            claimed_at TIMESTAMP
+        )
+    ''')
+    
+    # Also create predictions table so the DB is ready
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS predictions (
+            formula TEXT PRIMARY KEY,
+            predicted_tc REAL,
+            uncertainty REAL
+        )
+    ''')
+    
+    # Insert candidates with chunk IDs (e.g., chunk size of 100)
+    chunk_size = 100
+    rows = []
+    for i, c in enumerate(valid_candidates):
+        chunk_id = math.floor(i / chunk_size)
+        rows.append((c, chunk_id, 'pending', None))
+        
+    cursor.executemany('''
+        INSERT OR IGNORE INTO work_queue (formula, chunk_id, status, claimed_at)
+        VALUES (?, ?, ?, ?)
+    ''', rows)
+    
+    conn.commit()
+    conn.close()
             
-    print(f"Wrote candidates to {out_file}")
+    print(f"Wrote {len(rows)} candidates into {db_file} across {math.ceil(len(valid_candidates)/chunk_size)} chunks.")
 
 if __name__ == "__main__":
     main()

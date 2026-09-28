@@ -1,3 +1,4 @@
+from download_model import download_if_missing
 import numpy as np
 import pandas as pd
 import joblib
@@ -15,7 +16,7 @@ from test_ood import get_rf_uncertainty
 from general_phase1 import get_valid_metals, get_valid_anions, get_stoichiometries, check_charge_balance
 
 def main():
-    model = joblib.load("models/rf_tc_model.joblib")
+    model = joblib.load(download_if_missing())
     
     # 1. Gather Real SuperCon Data
     print("Loading SuperCon dataset...")

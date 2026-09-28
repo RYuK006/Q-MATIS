@@ -1,3 +1,4 @@
+from download_model import download_if_missing
 import pandas as pd
 import numpy as np
 import joblib
@@ -7,7 +8,7 @@ from run_comp_model import get_composition_features
 
 def main():
     print("Loading model...")
-    model = joblib.load("models/rf_tc_model.joblib")
+    model = joblib.load(download_if_missing())
     
     # Base: Ba(1-x) K(x) Fe2 As2
     fractions = [0.30, 0.35, 0.40, 0.45, 0.50]

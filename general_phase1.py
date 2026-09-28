@@ -1,3 +1,4 @@
+from download_model import download_if_missing
 import itertools
 import numpy as np
 import time
@@ -91,7 +92,7 @@ def main():
     
     print("\nFeaturizing and scoring the passed sample (up to 10k)...")
     
-    model = joblib.load("models/rf_tc_model.joblib")
+    model = joblib.load(download_if_missing())
     
     to_score = passed_samples[:10000]
     

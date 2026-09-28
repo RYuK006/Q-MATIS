@@ -1,3 +1,4 @@
+from download_model import download_if_missing
 import numpy as np
 import joblib
 import random
@@ -12,7 +13,7 @@ from general_phase1 import get_valid_metals, get_valid_anions, get_stoichiometri
 import itertools
 
 def main():
-    model = joblib.load("models/rf_tc_model.joblib")
+    model = joblib.load(download_if_missing())
     
     # 1. 20 Random SuperCon Compounds (Fresh, NOT sorted by Tc)
     print("Loading SuperCon dataset and sampling 20 random compounds...")

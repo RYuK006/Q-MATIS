@@ -1,3 +1,4 @@
+from download_model import download_if_missing
 import numpy as np
 import joblib
 import pandas as pd
@@ -56,7 +57,7 @@ def main():
     print(f"Generated {len(candidates)} unique candidates.")
     
     print("Loading model...")
-    model = joblib.load("models/rf_tc_model.joblib")
+    model = joblib.load(download_if_missing())
     
     results = []
     

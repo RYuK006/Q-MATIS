@@ -1,3 +1,4 @@
+from download_model import download_if_missing
 import numpy as np
 import joblib
 import itertools
@@ -26,7 +27,7 @@ def chunk_list(lst, n):
 
 def main():
     print("Loading models...")
-    rf_model = joblib.load("models/rf_tc_model.joblib")
+    rf_model = joblib.load(download_if_missing())
     scaler, svm_model = joblib.load("models/ood_svm.joblib")
     
     print("Generating combinatorial space...")

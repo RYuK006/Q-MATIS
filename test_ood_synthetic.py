@@ -1,3 +1,4 @@
+from download_model import download_if_missing
 import pandas as pd
 import numpy as np
 import joblib
@@ -49,7 +50,7 @@ def print_stats(name, data):
 def main():
     print("Loading data and model...")
     df = pd.read_csv("data/supercon.csv")
-    model = joblib.load("models/rf_tc_model.joblib")
+    model = joblib.load(download_if_missing())
     
     real_metals = []
     

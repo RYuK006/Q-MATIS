@@ -1,3 +1,4 @@
+from download_model import download_if_missing
 import numpy as np
 import joblib
 import random
@@ -22,7 +23,7 @@ def print_ratio_stats(name, data):
     print(f"  Max:    {np.max(data):.4f}")
 
 def main():
-    model = joblib.load("models/rf_tc_model.joblib")
+    model = joblib.load(download_if_missing())
     
     # 1. YBCO / Pnictides (Narrow Phase 1)
     print("Generating Narrow Phase 1 candidates...")

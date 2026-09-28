@@ -1,3 +1,4 @@
+from download_model import download_if_missing
 import argparse
 import numpy as np
 import joblib
@@ -35,7 +36,7 @@ def main():
         return
 
     try:
-        rf = joblib.load("models/rf_tc_model.joblib")
+        rf = joblib.load(download_if_missing())
     except Exception as e:
         print(f"Error loading model: {e}")
         return

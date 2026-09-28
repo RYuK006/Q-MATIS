@@ -1,7 +1,7 @@
 import os
 import logging
 from typing import List, Dict, Any
-from mp_api.client import MPRester
+
 from superconductor.data_sources.base import BaseDataSource
 
 logger = logging.getLogger(__name__)
@@ -31,6 +31,7 @@ class MPDataSource(BaseDataSource):
         logger.info("Fetching data from Materials Project via API...")
         results = []
         try:
+            from mp_api.client import MPRester
             with MPRester(self.api_key) as mpr:
                 # We'll fetch basic stable materials for pretraining. 
                 # This could be paginated/resumable in a more advanced implementation.

@@ -1,0 +1,1 @@
+Running A5 Architecture Benchmark on cuda

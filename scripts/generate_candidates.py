@@ -94,6 +94,8 @@ def main():
         )
     ''')
     
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_chunk_id ON work_queue (chunk_id)')
+    
     # Also create predictions table so the DB is ready
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS predictions (

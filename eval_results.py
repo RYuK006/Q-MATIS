@@ -13,15 +13,19 @@ def evaluate(csv_path, model_name):
     print(f"Total relaxed: {len(df_pred)}")
     
     df_wbm = pd.read_csv("wbm-summary.csv.gz").set_index('material_id')
-    df = df_pred.join(df_wbm[['uncorrected_energy']], how='inner')
+    df = df_pred.join(df_wbm[['uncorrected_energy', 'e_correction_per_atom_mp2020']], how='inner')
     
-    # E_total_true is the uncorrected VASP energy
-    e_total_true = df['uncorrected_energy']
     e_total_pred = df['e_total']
     n_atoms = df['n_atoms']
     
+    if model_name == "CHGNet":
+        # CHGNet is trained on MP2020 corrected energies. 
+        e_total_true = df['uncorrected_energy'] + df['e_correction_per_atom_mp2020'] * n_atoms
+    else:
+        # MACE-MP is trained on uncorrected VASP trajectories.
+        e_total_true = df['uncorrected_energy']
+        
     # Mathematical identity: E_hull_pred - E_hull_true = (E_total_pred - E_total_true) / n_atoms
-    # Assuming elemental references and the convex hull are fixed.
     df['e_hull_pred'] = df['e_above_hull_true'] + (e_total_pred - e_total_true) / n_atoms
     
     mae = mean_absolute_error(df['e_above_hull_true'], df['e_hull_pred'])

@@ -5,7 +5,7 @@ from sklearn.metrics import mean_absolute_error, precision_score, recall_score, 
 def evaluate(csv_path, model_name):
     print(f"\n{'='*40}\nEvaluating {model_name} from {csv_path}\n{'='*40}")
     try:
-        df_pred = pd.read_csv(csv_path).set_index('material_id')
+        df_pred = pd.read_csv(csv_path).drop_duplicates(subset='material_id', keep='last').set_index('material_id')
     except Exception as e:
         print(f"File not found or error: {e}")
         return

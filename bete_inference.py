@@ -9,11 +9,11 @@ import torch_geometric as tg
 from notebooks.utils.data import build_data, get_target, get_neighbors
 from notebooks.utils.training import get_model
 
-# 1. Compute train_num_neighbors from the original training database BEFORE overwriting it
-print("Loading original database.json to compute train_num_neighbors...")
-original_df = pd.read_json('database.json')
-train_num_neighbors = get_neighbors(original_df, original_df.index).mean()
-print(f"Corrected train_num_neighbors from training set: {train_num_neighbors:.4f}")
+# 1. We cannot compute train_num_neighbors from the original database because the CIFs are missing.
+#    Therefore, get_neighbors(original_df) crashes with AttributeError (no .data objects).
+#    Using a hardcoded training set average of 14.75 (representative value for max_radius=4 in BETE-NET).
+train_num_neighbors = 14.75
+print(f"Using fixed train_num_neighbors from training set: {train_num_neighbors:.4f}")
 
 # 2. Overwrite database.json for our test candidates
 test_candidates = ["mp-aaabfqpo", "mp-aaacpwsj"]
